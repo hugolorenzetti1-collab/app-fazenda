@@ -46,12 +46,17 @@ var MODULES = [
   { n: 18, area: 27.5,  cap: 0.00,   pastos: [['PASTO 12',12],['PASTO 12 - A',16]] }
 ];
 
+// Área útil de cada pasto (planilha da MS Consultoria, via KMZ "Pastos 2026")
+var AREA_UTIL = {"PASTO 12": 11.8, "PASTO 12 - A": 15.7, "PASTO 8": 22.2, "PASTO 9": 17.3, "PASTO 10": 17.8, "PASTO 11": 29.0, "PASTO 14": 14.0, "PASTO 14 - A": 12.0, "PASTO 14 - B": 10.1, "PASTO 14 - C": 11.8, "PASTO 16": 25.2, "SAPÉ": 28.1, "PASTO 17": 21.6, "PASTO 18": 22.2, "PASTO 18 - A": 17.3, "PASTO 19": 19.0, "PASTO 19 - A": 16.1, "PASTO 20": 19.3, "PASTO 20 - A": 25.7, "PASTO 21": 15.6, "PASTO 21 - A": 7.6, "PASTO G 17": 20.3, "PASTO G 18": 26.2, "ENLEIRADO 1": 16.6, "ENLEIRADO 2": 21.9, "PASTO 22": 18.1, "PASTO 23": 15.2, "PASTO 24": 19.2, "PASTO 24 - A": 14.2, "PASTO 25": 12.6, "PASTO 25 - A": 18.9, "PASTO 26": 7.9, "PASTO 26 - A": 11.9, "PASTO 26 -B": 22.9, "PASTO 27": 12.1, "PASTO 28": 30.4, "PASTO 29": 24.0, "PASTO 30": 21.6, "PASTO 31": 11.9, "PASTO 31 - A": 16.7, "PASTO 32": 34.1, "PASTO 32 - A": 35.1, "PASTO 33": 19.1, "PASTO 33 - A": 25.2, "PASTO 34": 33.4, "PASTO 35": 19.8, "PASTO 36": 22.0, "PASTO 36 - A": 24.7, "PASTO 37": 40.2, "PASTO 39": 45.0, "PASTO 41": 30.4, "PASTO 42": 14.7, "PASTO 42 - A": 23.0, "PASTO 45": 17.3, "PASTO 46": 25.5, "PASTO 47": 12.1, "PASTO 48": 28.9, "PASTO 49": 26.8, "PASTO 50": 38.0, "PASTO 51": 23.1, "PASTO 52": 36.1, "PALHADÃO - 1": 24.1, "PALHADÃO - 2": 28.0, "PALHADÃO - 3": 23.4, "PALHADÃO - 4": 26.7, "PALHADÃO - 5": 22.3, "PALHADÃO - 6": 26.0};
+var CONSUMO_UA = UA_KG * 0.025; // 11,25 kg MS por UA por dia (2,5% do peso vivo)
+
 // Regras de aviso (padrão). Ficam na aba REGRAS do CONTROLE GADO e podem ser mudadas pelo app (Hugo).
 var REGRAS_PADRAO = [
   ['semi_sem_trato',   'Pasto do semi sem trato (dias)', 2,  'SIM'],
   ['rot_passou',       'Rotacionado: passou do dia de retirar (dias além)', 0, 'SIM'],
   ['rot_antes',        'Rotacionado: avisar antes de retirar (dias antes)', 1, 'SIM'],
   ['rot_lotacao',      'Rotacionado: lotação acima da capacidade', 0, 'SIM'],
+  ['medicao',          'Módulo sem medição de forragem (dias)', 30, 'NÃO'],
   ['sem_chuva',        'Dias sem chuva', 15, 'SIM'],
   ['bebedouro',        'Bebedouro sem lavar (dias)', 7, 'SIM'],
   ['cocho',            'Cocho/sal sem abastecer (dias)', 7, 'SIM'],
@@ -155,6 +160,7 @@ function gravar_(tipo, d, u, foto) {
     case 'maquina':   return maquina_(d, u);
     case 'maq_nova':  return maqNova_(d, u);
     case 'regras':    return salvaRegras_(d, u);
+    case 'medicao':   return medicao_(d, u);
   }
   throw new Error('Tipo desconhecido: ' + tipo);
 }
@@ -341,6 +347,43 @@ function salvaRegras_(d, u) {
   return [];
 }
 
+// Medição de forragem: MANEJO > MEDICOES
+var MED_CAB = ['Data', 'Módulo', 'Pasto', 'Área útil (ha)', 'Altura (cm)', 'Densidade (kg MS/ha/cm)', 'Aproveitamento (%)', 'Época', 'Período (dias)',
+               'Massa (kg MS/ha)', 'Forragem aproveitável (kg MS)', 'Capacidade (UA)', 'Lotação (UA/ha)', 'Obs', 'Usuário'];
+function calcForragem_(d) {
+  var area = num_(d.area), alt = num_(d.altura), dens = num_(d.densidade), apr = num_(d.aprov), per = num_(d.periodo);
+  var massa = alt * dens, aprov = massa * area * apr / 100;
+  var cap = per > 0 ? aprov / (CONSUMO_UA * per) : 0;
+  return { massa: massa, aprov: aprov, cap: cap, uaha: area > 0 ? cap / area : 0 };
+}
+function medicao_(d, u) {
+  if (!num_(d.altura)) throw new Error('Altura vazia');
+  var c = calcForragem_(d);
+  var sh = sheet_(IDS.MANEJO, 'MEDICOES', MED_CAB);
+  sh.appendRow([data_(d.data), Number(d.modulo), d.pasto, num_(d.area), num_(d.altura), num_(d.densidade), num_(d.aprov), d.epoca || '', num_(d.periodo),
+                Math.round(c.massa), Math.round(c.aprov), Math.round(c.cap * 10) / 10, Math.round(c.uaha * 100) / 100, d.obs || '', u.nome]);
+  return [loc_(IDS.MANEJO, sh, sh.getLastRow(), 1, MED_CAB.length)];
+}
+function lerMedicoes_(ss) {
+  var sh = ss.getSheetByName('MEDICOES'), ult = {}, hist = [];
+  if (!sh || sh.getLastRow() < 2) return { ult: ult, hist: hist };
+  valsData_(sh.getRange(2, 1, sh.getLastRow() - 1, 15), 0).forEach(function (r) {
+    if (!isIso_(r[0]) || !r[2]) return;
+    var m = { data: r[0], modulo: String(r[1]), pasto: String(r[2]), area: num_(r[3]), altura: num_(r[4]), densidade: num_(r[5]), aprov: num_(r[6]),
+              epoca: String(r[7]), periodo: num_(r[8]), massa: num_(r[9]), aprovKg: num_(r[10]), cap: num_(r[11]), uaha: num_(r[12]), user: String(r[14]) };
+    hist.push(m);
+    var k = m.modulo + '||' + m.pasto;
+    if (!ult[k] || ult[k].data <= m.data) ult[k] = m;
+  });
+  return { ult: ult, hist: hist.slice(-80).reverse() };
+}
+// capacidade do módulo pela última medição de cada pasto (soma dos pastos medidos)
+function capMedida_(mod, med) {
+  var cap = 0, n = 0, data = '';
+  mod.pastos.forEach(function (p) { var m = med.ult[mod.n + '||' + p[0]]; if (m) { cap += m.cap; n++; if (m.data > data) data = m.data; } });
+  return n ? { cap: cap, n: n, data: data } : null;
+}
+
 /* ---------------- apagar / corrigir ---------------- */
 
 function acharLog_(id) {
@@ -448,7 +491,7 @@ function dados_(u) {
   // Rotacionado
   var mj = SpreadsheetApp.openById(IDS.MANEJO);
   LER_TZ = mj.getSpreadsheetTimeZone();
-  out.rot = { modulos: MODULES, uaKg: UA_KG, datas: lerDatas_(mj), lotes: lerLotes_(mj) };
+  out.rot = { modulos: MODULES, uaKg: UA_KG, consumo: CONSUMO_UA, areaUtil: AREA_UTIL, datas: lerDatas_(mj), lotes: lerLotes_(mj), med: lerMedicoes_(mj) };
   var cs = mj.getSheetByName('COCHO_SAL');
   var ultCocho = {}, cochoHist = [];
   if (cs && cs.getLastRow() > 1) valsData_(cs.getRange(2, 1, cs.getLastRow() - 1, 6), 0).forEach(function (r) {
@@ -528,7 +571,8 @@ function meus_(u) {
 
 function regrasSheet_() {
   var sh = sheet_(IDS.GADO, 'REGRAS', ['Regra', 'Descrição', 'Limite', 'Ativa']);
-  if (sh.getLastRow() < 2) sh.getRange(2, 1, REGRAS_PADRAO.length, 4).setValues(REGRAS_PADRAO);
+  var tem = sh.getLastRow() > 1 ? sh.getRange(2, 1, sh.getLastRow() - 1, 1).getValues().map(function (r) { return String(r[0]); }) : [];
+  REGRAS_PADRAO.forEach(function (r) { if (tem.indexOf(r[0]) < 0) sh.appendRow(r); });
   sh.getRange('A:A').setNumberFormat('@');
   return sh;
 }
@@ -551,7 +595,9 @@ function somaDias_(iso, n) {
 }
 
 // mesma conta do app de manejo antigo
-function calcModulo_(mod, datas, lotes, hoje) {
+function calcModulo_(mod, datas, lotes, hoje, med) {
+  var cm = med ? capMedida_(mod, med) : null;
+  mod = { n: mod.n, area: mod.area, cap: cm ? cm.cap : mod.cap, pastos: mod.pastos };
   var lote = lotes[String(mod.n)] || [], ua = 0, cab = 0, somaPeso = 0;
   lote.forEach(function (l) { ua += l.cabecas * l.peso / UA_KG; cab += l.cabecas; somaPeso += l.cabecas * l.peso; });
   var pesoMedio = cab > 0 ? somaPeso / cab : 280;
@@ -580,7 +626,7 @@ function avisos_(D) {
     if (d === null || d >= lim('semi_sem_trato')) av.push({ k: 'trato', t: 'Pasto ' + p.pasto + ' (' + p.bois + ' bois) sem trato há ' + (d === null ? 'muitos' : d) + ' dias' });
   });
   D.rot.modulos.forEach(function (m) {
-    var c = calcModulo_(m, D.rot.datas, D.rot.lotes, hoje);
+    var c = calcModulo_(m, D.rot.datas, D.rot.lotes, hoje, D.rot.med);
     if (!c.cab) return;
     if (on('rot_passou') && c.atrasado && c.diasAtraso >= lim('rot_passou'))
       av.push({ k: 'rot', t: 'Módulo ' + m.n + ': passou da retirada do ' + c.atual.nome + ' (venceu ' + br_(c.atual.saida) + ', ' + c.diasAtraso + ' d)' });
@@ -588,6 +634,11 @@ function avisos_(D) {
       av.push({ k: 'rot', t: 'Módulo ' + m.n + ': tirar do ' + c.atual.nome + ' ' + (c.faltam === 0 ? 'hoje' : 'em ' + c.faltam + ' dia(s)') + ' (' + br_(c.atual.saida) + ')' });
     if (on('rot_lotacao') && c.status === 'acima')
       av.push({ k: 'rot', t: 'Módulo ' + m.n + ': lotação acima (' + Math.round(c.ua) + '/' + Math.round(m.cap) + ' UA · tirar ~' + Math.abs(c.difCab) + ' cab)' });
+  });
+  if (on('medicao')) D.rot.modulos.forEach(function (m) {
+    if (!(D.rot.lotes[String(m.n)] || []).length) return;
+    var cm = capMedida_(m, D.rot.med), d = cm ? diasEntre_(cm.data, hoje) : null;
+    if (d === null || d >= lim('medicao')) av.push({ k: 'rot', t: 'Módulo ' + m.n + ': ' + (d === null ? 'sem medição de forragem' : 'última medição de forragem há ' + d + ' dias') });
   });
   if (on('sem_chuva')) {
     var ult = D.chuva.filter(function (c) { return c[1] > 0; }).slice(-1)[0];
