@@ -103,7 +103,7 @@ td.n,th.n{text-align:right}
 <script>
 /* ======= configuração ======= */
 const API = 'https://script.google.com/macros/s/AKfycbwY3RA38GPBgCJ4UZjjwriIR1XyGTsPuZ1mBAuUJ_TNuZuF4nQg7P_q68GT8okeYCZd/exec';
-const VERSAO = '2.0';
+const VERSAO = '2.1';
 
 /* ======= estado ======= */
 const LS = {
@@ -239,7 +239,9 @@ function linhasGado(faz){ return (dados?dados.gado.lanc:[]).filter(r => !ehHist(
 function saldoGado(faz){ let m=0,f=0; linhasGado(faz).forEach(r=>{ m+=r[1]-r[3]; f+=r[2]-r[4]; }); return {m,f}; }
 
 /* ======= rotacionado (mesma conta do app antigo) ======= */
-function calcModulo(mod, datas, lotes){
+function capMedida(mod){ const med=dados.rot.med; if(!med) return null; let cap=0,n=0,data=''; mod.pastos.forEach(p=>{ const x=med.ult[mod.n+'||'+p[0]]; if(x){ cap+=x.cap; n++; if(x.data>data) data=x.data; } }); return n?{cap,n,data}:null; }
+function calcModulo(mod0, datas, lotes){
+  const cm = capMedida(mod0); const mod = Object.assign({}, mod0, {cap: cm? cm.cap : mod0.cap});
   const H = hojeISO(), UA = dados.rot.uaKg || 450;
   const lote = lotes[String(mod.n)] || [];
   let ua=0, cab=0, somaPeso=0;
@@ -258,7 +260,7 @@ function calcModulo(mod, datas, lotes){
   let at=-1; ps.forEach((p,j)=>{ if(p.entrada && p.entrada<=H) at=j; });
   ps.forEach((p,idx)=>{ p.estado=''; if(!p.entrada){ p.estado = idx>at?'prox':''; return; } if(idx<at) p.estado='feito'; else if(idx===at) p.estado = H>p.saida?'atrasado':'atual'; else p.estado='prox'; });
   const atrasado = at>=0 && H>ps[at].saida;
-  return {ua, cab, status, difCab, pastos:ps, atrasado, diasAtraso: atrasado? diasEntre(ps[at].saida,H):0, pastoAtual: at>=0?ps[at]:null};
+  return {cap: mod.cap, capMed: cm, ua, cab, status, difCab, pastos:ps, atrasado, diasAtraso: atrasado? diasEntre(ps[at].saida,H):0, pastoAtual: at>=0?ps[at]:null};
 }
 const CHIP = {ok:'Ajustado', acima:'Lotação acima', aumentar:'Cabe mais', semlote:'Sem lote'};
 const EST = {feito:['Concluído','t-ok'], atual:['No pasto','t-az'], atrasado:['Atrasado','t-vm'], prox:['Próximo','t-cz']};
@@ -381,9 +383,9 @@ TELAS.rot = (aba) => {
   if(!dados){ app.innerHTML = semDados(); return; }
   if(aba) abaRot=aba;
   if(!ROT || !rotMudou.size) rotCopia();
-  app.innerHTML = abas('abR',[['manejo','Manejo'],['resumo','Resumo'],['painel','Painel']],abaRot,'') + '<div id="rotC"></div>';
-  document.querySelectorAll('#abR button').forEach((b,i)=>b.onclick=()=>ir('rot',['manejo','resumo','painel'][i]));
-  if(abaRot==='manejo') rotManejo(); else if(abaRot==='resumo') $('#rotC').innerHTML=rotResumo(dados.rot.datas, dados.rot.lotes); else $('#rotC').innerHTML=rotPainel();
+  app.innerHTML = abas('abR',[['manejo','Manejo'],['forragem','Forragem'],['resumo','Resumo'],['painel','Painel']],abaRot,'') + '<div id="rotC"></div>';
+  document.querySelectorAll('#abR button').forEach((b,i)=>b.onclick=()=>ir('rot',['manejo','forragem','resumo','painel'][i]));
+  if(abaRot==='manejo') rotManejo(); else if(abaRot==='forragem') rotForragem(); else if(abaRot==='resumo') $('#rotC').innerHTML=rotResumo(dados.rot.datas, dados.rot.lotes); else $('#rotC').innerHTML=rotPainel();
 };
 function rotAlertas(datas, lotes){
   const al=[];
@@ -391,7 +393,7 @@ function rotAlertas(datas, lotes){
     if(c.atrasado) al.push(`<div class="tag t-vm" style="display:block;white-space:normal;margin-bottom:6px;padding:8px 10px">⏰ <b>Passou da retirada:</b> Módulo ${m.n} - ${esc(c.pastoAtual.nome)} (venceu ${br(c.pastoAtual.saida)}, ${c.diasAtraso} d)</div>`);
   });
   modulos().forEach(m=>{ const c=calcModulo(m,datas,lotes);
-    if(c.status==='acima') al.push(`<div class="tag t-vm" style="display:block;white-space:normal;margin-bottom:6px;padding:8px 10px;background:#fde8e6">⚠ <b>Lotação acima:</b> Módulo ${m.n} (${Math.round(c.ua)}/${Math.round(m.cap)} UA · tirar ~${Math.abs(c.difCab)} cab)</div>`);
+    if(c.status==='acima') al.push(`<div class="tag t-vm" style="display:block;white-space:normal;margin-bottom:6px;padding:8px 10px;background:#fde8e6">⚠ <b>Lotação acima:</b> Módulo ${m.n} (${Math.round(c.ua)}/${Math.round(c.cap)} UA · tirar ~${Math.abs(c.difCab)} cab)</div>`);
   });
   return al;
 }
@@ -400,14 +402,14 @@ function rotManejo(){
   let h = `<div class="card"><h3>ALERTAS</h3>${al.join('') || '<span class="muted">Nenhum alerta.</span>'}</div>`;
   modulos().forEach(m=>{
     const c = calcModulo(m, ROT.datas, ROT.lotes), ab = rotAberto.has(m.n);
-    h += `<div class="mod"><div class="hd" onclick="rotToggle(${m.n})"><div><b>Módulo ${m.n}</b>${rotMudou.has(m.n)?' ✎':''}<small>${fmt(m.area,1)} ha · cap. ${Math.round(m.cap)} UA${c.pastoAtual?' · '+esc(c.pastoAtual.nome):''}</small></div><span class="chip ${c.status}">${CHIP[c.status]}</span><span>${ab?'▲':'▼'}</span></div>`;
+    h += `<div class="mod"><div class="hd" onclick="rotToggle(${m.n})"><div><b>Módulo ${m.n}</b>${rotMudou.has(m.n)?' ✎':''}<small>${fmt(m.area,1)} ha · cap. ${Math.round(c.cap)} UA${c.capMed?' (medida)':''}${c.pastoAtual?' · '+esc(c.pastoAtual.nome):''}</small></div><span class="chip ${c.status}">${CHIP[c.status]}</span><span>${ab?'▲':'▼'}</span></div>`;
     if(ab){
       const lote = ROT.lotes[String(m.n)] || [];
       h += `<div class="bd"><div class="muted" style="font-weight:700;margin-bottom:6px">LOTE NO MÓDULO</div>
         <div class="lrow muted" style="font-size:11px"><span>Categoria</span><span>Cabeças</span><span>Peso kg</span><span></span></div>
         ${lote.map((l,i)=>`<div class="lrow"><input value="${esc(l.categoria)}" list="dlCat" onchange="rotLote(${m.n},${i},'categoria',this.value)"><input type="number" inputmode="numeric" value="${l.cabecas||''}" onchange="rotLote(${m.n},${i},'cabecas',this.value)"><input type="number" inputmode="decimal" value="${l.peso||''}" onchange="rotLote(${m.n},${i},'peso',this.value)"><button class="x" onclick="rotLote(${m.n},${i},'x')">×</button></div>`).join('')}
         <button class="btn peq full" style="border-style:dashed;border-color:var(--laranja);color:var(--laranja)" onclick="rotLote(${m.n},-1,'add')">+ categoria</button>
-        <div class="tag ${c.status==='acima'?'t-vm':c.status==='ok'?'t-ok':'t-am'}" style="display:block;margin:10px 0;padding:8px 10px;white-space:normal">${CHIP[c.status]} · ${Math.round(c.ua)} de ${Math.round(m.cap)} UA${c.cab? ' · '+(c.difCab>=0?'cabe +~'+c.difCab:'tirar ~'+Math.abs(c.difCab))+' cab':''}</div>
+        <div class="tag ${c.status==='acima'?'t-vm':c.status==='ok'?'t-ok':'t-am'}" style="display:block;margin:10px 0;padding:8px 10px;white-space:normal">${CHIP[c.status]} · ${Math.round(c.ua)} de ${Math.round(c.cap)} UA${c.cab? ' · '+(c.difCab>=0?'cabe +~'+c.difCab:'tirar ~'+Math.abs(c.difCab))+' cab':''}</div>
         <div class="muted" style="font-weight:700;margin:10px 0 6px">PASTOS — LANCE A DATA DE ENTRADA</div>
         ${c.pastos.map(p=>{ const e=EST[p.estado]; return `<div class="pcard ${p.estado}"><div class="linha" style="justify-content:space-between"><b>${esc(p.nome)}</b><span><span class="tag t-cz">${p.dias} d</span> ${e?`<span class="tag ${e[1]}">${e[0]}</span>`:''}</span></div>
           <div class="grade" style="gap:8px"><div><label>Entrada</label><input type="date" value="${p.entrada}" onchange="rotData(${m.n},'${esc(p.nome).replace(/'/g,"\\'")}',this.value)" style="${p.salva?'':'color:#999'}"></div><div><label>Saída (auto)</label><input value="${br(p.saida)}" disabled style="color:var(--laranja);font-weight:700;background:#fff7f0"></div></div>
@@ -437,15 +439,82 @@ function rotSalvar(){
   toast(n+' módulo(s) salvo(s)'+(navigator.onLine?' — enviando…':' na fila'));
   ir('rot','manejo'); if(navigator.onLine) sincronizar(true);
 }
+
+/* ---- Forragem: altura × densidade → capacidade ---- */
+let forMod = null, forEpoca = 'Águas';
+const PER = {'Águas':30, 'Seca':150};
+function calcFor(area, alt, dens, apr, per){ const massa=alt*dens, aprov=massa*area*apr/100, cons=dados.rot.consumo||11.25, cap= per>0? aprov/(cons*per) : 0; return {massa, aprov, cap, uaha: area>0? cap/area : 0}; }
+function rotForragem(){
+  const ms = modulos(); if(!forMod) forMod = (ms.find(m=>(dados.rot.lotes[String(m.n)]||[]).length)||ms[0]).n;
+  const m = ms.find(x=>x.n==forMod) || ms[0];
+  const med = dados.rot.med || {ult:{},hist:[]};
+  const c = calcModulo(m, dados.rot.datas, dados.rot.lotes);
+  let h = `<div class="card"><label>Módulo</label><select onchange="forMod=this.value;rotForragem()">${opts(ms.map(x=>[x.n,'Módulo '+x.n]), m.n)}</select>
+    <label>Época</label>${seg('fEpoca',[['Águas','Águas (30 dias)'],['Seca','Seca (150 dias)']],forEpoca,'mudaEpoca')}
+    ${campoData('fDataMed')}
+    <div class="status">Consumo: 2,5% do peso vivo = ${fmt(dados.rot.consumo||11.25,2)} kg MS por UA por dia. Capacidade = forragem aproveitável ÷ (consumo × período).</div></div>`;
+  m.pastos.forEach((p,i)=>{
+    const u = med.ult[m.n+'||'+p[0]] || {};
+    const area = u.area || (dados.rot.areaUtil||{})[p[0]] || '';
+    h += `<div class="pcard" data-i="${i}"><div class="linha" style="justify-content:space-between"><b>${esc(p[0])}</b><span class="muted" style="font-size:12px">${u.data?'última: '+br(u.data)+' · '+fmt(u.cap,1)+' UA':'sem medição'}</span></div>
+      <div class="grade" style="gap:8px;grid-template-columns:1fr 1fr 1fr">
+        <div><label>Área útil (ha)</label><input type="number" inputmode="decimal" class="fa" value="${area}" oninput="forCalc(${i})"></div>
+        <div><label>Altura (cm)</label><input type="number" inputmode="decimal" class="fh" oninput="forCalc(${i})"></div>
+        <div><label>Período (dias)</label><input type="number" inputmode="numeric" class="fp" value="${PER[forEpoca]}" oninput="forCalc(${i})"></div>
+        <div><label>Densidade (kg MS/ha/cm)</label><input type="number" inputmode="decimal" class="fd" value="${u.densidade||LS.get('densidade','')}" oninput="forCalc(${i})"></div>
+        <div><label>Aproveitamento (%)</label><input type="number" inputmode="decimal" class="fr" value="${u.aprov||LS.get('aproveitamento','')}" oninput="forCalc(${i})"></div>
+        <div></div>
+      </div><div class="tag t-cz" style="display:block;margin-top:8px;padding:8px 10px;white-space:normal" id="forRes${i}">Lance a altura para calcular.</div></div>`;
+  });
+  h += `<div class="card" id="forTot"></div>`;
+  const hist = med.hist.filter(x=>x.modulo==String(m.n)).slice(0,20);
+  h += `<div class="card"><h3>Medições do módulo ${m.n}</h3>${hist.length?`<div class="rolar"><table><tr><th>Data</th><th>Pasto</th><th class="n">Altura</th><th class="n">Dens.</th><th class="n">Aprov.</th><th>Época</th><th class="n">Massa kg MS/ha</th><th class="n">Cap. UA</th><th class="n">UA/ha</th></tr>${hist.map(x=>`<tr><td>${br(x.data)}</td><td>${esc(x.pasto)}</td><td class="n">${fmt(x.altura,1)}</td><td class="n">${fmt(x.densidade)}</td><td class="n">${fmt(x.aprov)}%</td><td>${esc(x.epoca)} ${x.periodo}d</td><td class="n">${fmt(x.massa)}</td><td class="n"><b>${fmt(x.cap,1)}</b></td><td class="n">${fmt(x.uaha,2)}</td></tr>`).join('')}</table></div>`:'<span class="muted">Nenhuma medição ainda.</span>'}</div>`;
+  $('#rotC').innerHTML = h;
+  m.pastos.forEach((p,i)=>forCalc(i));
+  $('#barra').innerHTML = `<div class="barra"><button class="btn" onclick="salvaForragem()">Salvar medições</button></div>`;
+}
+function mudaEpoca(v){ forEpoca=v; document.querySelectorAll('.pcard .fp').forEach(e=>e.value=PER[v]); document.querySelectorAll('.pcard[data-i]').forEach(e=>forCalc(+e.dataset.i)); }
+function forVals(i){ const c=document.querySelector(`.pcard[data-i="${i}"]`); const g=k=>+(c.querySelector(k).value)||0; return {area:g('.fa'), altura:g('.fh'), periodo:g('.fp'), densidade:g('.fd'), aprov:g('.fr')}; }
+function forCalc(i){
+  const v=forVals(i), el=$('#forRes'+i); if(!el) return;
+  if(!v.altura){ el.textContent='Lance a altura para calcular.'; el.className='tag t-cz'; }
+  else { const r=calcFor(v.area,v.altura,v.densidade,v.aprov,v.periodo); el.className='tag t-az'; el.style.display='block'; el.innerHTML=`Massa ${fmt(r.massa)} kg MS/ha · aproveitável ${fmt(r.aprov)} kg MS · <b>capacidade ${fmt(r.cap,1)} UA</b> · ${fmt(r.uaha,2)} UA/ha`; }
+  forTotal();
+}
+function forTotal(){
+  const m = modulos().find(x=>x.n==forMod); if(!m || !$('#forTot')) return;
+  const med = dados.rot.med || {ult:{}}; let cap=0, n=0;
+  m.pastos.forEach((p,i)=>{ const v=forVals(i); if(v.altura){ cap+=calcFor(v.area,v.altura,v.densidade,v.aprov,v.periodo).cap; n++; } else { const u=med.ult[m.n+'||'+p[0]]; if(u){ cap+=u.cap; n++; } } });
+  const c = calcModulo(m, dados.rot.datas, dados.rot.lotes);
+  const st = !c.cab ? 'semlote' : c.ua > cap+0.5 ? 'acima' : c.ua < cap*0.85 ? 'aumentar' : 'ok';
+  const pm = c.cab ? (c.ua*(dados.rot.uaKg||450))/c.cab : 280, dif = Math.round((cap-c.ua)/(pm/(dados.rot.uaKg||450)));
+  $('#forTot').innerHTML = `<h3>Módulo ${m.n} — capacidade pela medição</h3><table>
+    <tr><td>Pastos medidos</td><td class="n">${n} de ${m.pastos.length}</td></tr>
+    <tr><td>Capacidade (soma dos pastos)</td><td class="n"><b>${fmt(cap,1)} UA</b></td></tr>
+    <tr><td>Rebanho no módulo</td><td class="n">${fmt(c.ua,1)} UA (${c.cab} cab)</td></tr>
+    <tr><td>Situação</td><td class="n"><span class="chip ${st}" style="border:1px solid #ddd">${CHIP[st]}</span>${c.cab?` ${dif>=0?'cabe +~'+dif:'tirar ~'+Math.abs(dif)} cab`:''}</td></tr></table>`;
+}
+function salvaForragem(){
+  const m = modulos().find(x=>x.n==forMod), data=val('fDataMed'); let n=0;
+  m.pastos.forEach((p,i)=>{ const v=forVals(i); if(!v.altura) return;
+    if(!v.densidade || !v.aprov || !v.area || !v.periodo){ n=-999; return; }
+    lancar('medicao', Object.assign({data, modulo:m.n, pasto:p[0], epoca:forEpoca}, v)); n++;
+    LS.set('densidade', v.densidade); LS.set('aproveitamento', v.aprov); });
+  if(n<0) return toast('Preencha área, densidade, aproveitamento e período dos pastos com altura');
+  if(!n) return toast('Lance a altura de pelo menos um pasto');
+  toast(n+' medição(ões) salva(s)'+(navigator.onLine?' — enviando…':' na fila')); ir('rot','forragem'); if(navigator.onLine) sincronizar(true);
+}
+APLICA.medicao = (D,d) => { if(!D.rot.med) D.rot.med={ult:{},hist:[]}; const r=calcFor(+d.area,+d.altura,+d.densidade,+d.aprov,+d.periodo); const x=Object.assign({}, d, {modulo:String(d.modulo), massa:r.massa, aprovKg:r.aprov, cap:r.cap, uaha:r.uaha, user:user.nome}); D.rot.med.ult[x.modulo+'||'+d.pasto]=x; D.rot.med.hist.unshift(x); };
+
 function rotResumo(datas, lotes){
   return modulos().map(m=>{ const c=calcModulo(m,datas,lotes);
-    return `<div class="mod" style="border-color:#e3a46d"><div class="hd"><div><b>Módulo ${m.n}</b></div><small>${fmt(m.area,1)} ha · ${Math.round(m.cap)} UA · ${fmt(m.cap/m.area,2)} UA/ha</small></div><div class="bd" style="padding:4px 14px">
+    return `<div class="mod" style="border-color:#e3a46d"><div class="hd"><div><b>Módulo ${m.n}</b></div><small>${fmt(m.area,1)} ha · ${Math.round(c.cap)} UA${c.capMed?' (medida)':''} · ${fmt(c.cap/m.area,2)} UA/ha</small></div><div class="bd" style="padding:4px 14px">
     <table>${c.pastos.map(p=>`<tr style="${p.estado==='atual'||p.estado==='atrasado'?'background:#eef6ef':''}"><td>${esc(p.nome)} ${p.estado==='atrasado'?'<span class="tag t-vm">atrasado</span>':p.estado==='atual'?'<span class="tag t-az">atual</span>':''}</td><td class="n">${p.entrada?br(p.entrada)+' → '+br(p.saida):'—'}</td></tr>`).join('')}</table>
     <div class="muted" style="padding:6px 0">${c.cab? c.cab+' cab · '+Math.round(c.ua)+' UA':'sem lote'}</div></div></div>`; }).join('');
 }
 function rotPainel(){
   const ms = modulos(); let cab=0, ua=0, area=0, cap=0; const st={acima:0,ok:0,aumentar:0,semlote:0}; const venc=[];
-  ms.forEach(m=>{ const c=calcModulo(m,dados.rot.datas,dados.rot.lotes); cab+=c.cab; ua+=c.ua; area+=m.area; cap+=m.cap; st[c.status]++; if(c.atrasado) venc.push(`Módulo ${m.n} · ${esc(c.pastoAtual.nome)} (venceu ${br(c.pastoAtual.saida)}, ${c.diasAtraso} d)`); });
+  ms.forEach(m=>{ const c=calcModulo(m,dados.rot.datas,dados.rot.lotes); cab+=c.cab; ua+=c.ua; area+=m.area; cap+=c.cap; st[c.status]++; if(c.atrasado) venc.push(`Módulo ${m.n} · ${esc(c.pastoAtual.nome)} (venceu ${br(c.pastoAtual.saida)}, ${c.diasAtraso} d)`); });
   return `<div class="kpis">${kpi('Cabeças (cadastradas)',fmt(cab),'c')}${kpi('UA total',fmt(ua),'c')}${kpi('Lotados (diminuir)',`<i style="color:var(--vermelho)">${st.acima}</i>`,'c')}${kpi('Ajustados',`<i style="color:var(--ok)">${st.ok}</i>`,'c')}${kpi('Com folga',`<i style="color:#a86a00">${st.aumentar}</i>`,'c')}${kpi('Sem lote',st.semlote,'c')}</div>
   <div class="card" style="margin-top:12px"><h3>REBANHO × PASTO</h3><table>
     <tr><td>Área total dos módulos</td><td class="n"><b>${fmt(area,1)} ha</b></td></tr><tr><td>Capacidade total</td><td class="n"><b>${fmt(cap)} UA</b></td></tr>
@@ -680,7 +749,7 @@ function salvaMaq(nome){
 }
 
 /* =================== FILA + CORRIGIR / APAGAR =================== */
-const NOMES = {gado:'Controle de gado',transf:'Transferência',morte:'Morte',trato:'Trato',chuva:'Chuva',mudar:'Mudar de pasto',lote:'Lote',manejo:'Rotacionado',contagem:'Contagem',bebedouro:'Bebedouro',cocho:'Cocho/sal',maquina:'Máquina',maq_nova:'Nova máquina',regras:'Regras'};
+const NOMES = {gado:'Controle de gado',transf:'Transferência',morte:'Morte',trato:'Trato',chuva:'Chuva',mudar:'Mudar de pasto',lote:'Lote',manejo:'Rotacionado',contagem:'Contagem',bebedouro:'Bebedouro',cocho:'Cocho/sal',maquina:'Máquina',maq_nova:'Nova máquina',regras:'Regras',medicao:'Medição de forragem'};
 function resumo(x){ const d=x.d||{}; const mf=()=>[(+d.machos?d.machos+' M':''),(+d.femeas?d.femeas+' F':''),(d.qtd&&!d.machos&&!d.femeas?d.qtd+(d.sexo==='F'?' F':' M'):'')].filter(Boolean).join(' '); switch(x.tipo){
   case 'trato': return d.pasto+' · '+fmt(d.kg)+' kg';
   case 'gado': return (d.mov==='saida'?'Saída ':'Entrada ')+mf()+' · '+d.fazenda+(d.obs?' · '+d.obs:'');
@@ -692,6 +761,7 @@ function resumo(x){ const d=x.d||{}; const mf=()=>[(+d.machos?d.machos+' M':''),
   case 'bebedouro': return d.local;
   case 'cocho': return 'Módulo '+d.modulo+' · '+d.sacos+' sacos';
   case 'maquina': return d.maquina+' · '+d.tipo;
+  case 'medicao': return d.pasto+' · '+d.altura+' cm';
   case 'maq_nova': return d.nome; } return ''; }
 TELAS.fila = () => {
   const meus = dados && dados.meus ? dados.meus : [];
@@ -708,7 +778,7 @@ async function apagarEnv(i){
   if(!confirm('Apagar da planilha?\n'+(NOMES[x.tipo]||x.tipo)+': '+resumo(x))) return;
   try{ await api({a:'apagar', id:x.id}); toast('Apagado ✔'); await sincronizar(true); ir('fila'); }catch(e){ toast(e.message, 5000); }
 }
-const CAMPOS = {data:'Data',machos:'Machos',femeas:'Fêmeas',qtd:'Quantidade',kg:'Kg',mm:'mm',pasto:'Pasto',obs:'Obs.',local:'Local',cabecas:'Cabeças',sacos:'Sacos',produto:'Produto',horimetro:'Horímetro',litros:'Litros',desc:'Descrição',brinco:'Brinco',causa:'Causa',tratador:'Tratador',fazenda:'Fazenda'};
+const CAMPOS = {data:'Data',machos:'Machos',femeas:'Fêmeas',qtd:'Quantidade',kg:'Kg',mm:'mm',pasto:'Pasto',obs:'Obs.',local:'Local',cabecas:'Cabeças',sacos:'Sacos',produto:'Produto',horimetro:'Horímetro',litros:'Litros',desc:'Descrição',brinco:'Brinco',causa:'Causa',tratador:'Tratador',fazenda:'Fazenda',altura:'Altura (cm)',densidade:'Densidade',aprov:'Aproveitamento (%)',area:'Área útil (ha)',periodo:'Período (dias)'};
 function corrigir(i){
   const x = dados.meus[i]; if(!navigator.onLine) return toast('Precisa de internet');
   const ks = Object.keys(x.d).filter(k=>CAMPOS[k]);
