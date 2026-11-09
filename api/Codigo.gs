@@ -411,12 +411,12 @@ function dados_(u) {
   // Gado: todos os lançamentos (o app calcula saldo, mês a mês, gráfico)
   var gl = SpreadsheetApp.openById(IDS.GADO);
   LER_TZ = gl.getSpreadsheetTimeZone();
-  var lan = gl.getSheetByName('Lançamentos').getDataRange().getValues();
+  var lan = valsData_(gl.getSheetByName('Lançamentos').getDataRange(), 0);
   var rows = [];
   for (var i = 1; i < lan.length; i++) {
     var r = lan[i];
-    if (!(r[0] instanceof Date)) continue;
-    rows.push([iso_(r[0]), num_(r[1]), num_(r[2]), num_(r[3]), num_(r[4]), String(r[7] || ''), String(r[8] || 'Lorenzetti')]);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(String(r[0]))) continue;
+    rows.push([r[0], num_(r[1]), num_(r[2]), num_(r[3]), num_(r[4]), String(r[7] || ''), String(r[8] || 'Lorenzetti')]);
   }
   out.gado = { lanc: rows };
 
@@ -433,14 +433,14 @@ function dados_(u) {
   var painel = giro.getSheetByName('PAINEL').getRange('B4:G26').getDisplayValues();
   var tr = giro.getSheetByName('TRATOS');
   var tn = ultimaLinha_(tr, 5);
-  var tv = tn > 1 ? tr.getRange(2, 5, tn - 1, 4).getValues() : [];
+  var tv = tn > 1 ? valsData_(tr.getRange(2, 5, tn - 1, 4), 0) : [];
   var ultTrato = {}, recentes = [];
   tv.forEach(function (r) {
-    if (!(r[0] instanceof Date) || !r[1]) return;
-    var p = String(r[1]).toUpperCase().trim(), dt = iso_(r[0]);
+    if (!isIso_(r[0]) || !r[1]) return;
+    var p = String(r[1]).toUpperCase().trim(), dt = r[0];
     if (!ultTrato[p] || ultTrato[p].data < dt) ultTrato[p] = { data: dt, kg: num_(r[2]) };
   });
-  tv.slice(-60).forEach(function (r) { if (r[0] instanceof Date) recentes.push({ data: iso_(r[0]), pasto: String(r[1]), kg: num_(r[2]), quem: String(r[3] || '') }); });
+  tv.slice(-60).forEach(function (r) { if (isIso_(r[0])) recentes.push({ data: r[0], pasto: String(r[1]), kg: num_(r[2]), quem: String(r[3] || '') }); });
   var lista = tr.getRange('J2:J60').getValues().map(function (r) { return String(r[0]).toUpperCase().trim(); }).filter(String);
   semi.forEach(function (s) { if (s.bois && lista.indexOf(s.pasto) < 0) lista.push(s.pasto); });
   out.semi = { cab: cab, tabela: tab, pastos: semi, painel: painel, ultTrato: ultTrato, recentes: recentes.reverse(), lista: ordenaPastos_(lista) };
@@ -451,9 +451,9 @@ function dados_(u) {
   out.rot = { modulos: MODULES, uaKg: UA_KG, datas: lerDatas_(mj), lotes: lerLotes_(mj) };
   var cs = mj.getSheetByName('COCHO_SAL');
   var ultCocho = {}, cochoHist = [];
-  if (cs && cs.getLastRow() > 1) cs.getRange(2, 1, cs.getLastRow() - 1, 6).getValues().forEach(function (r) {
-    if (!(r[0] instanceof Date)) return;
-    var k = String(r[1]); var dt = iso_(r[0]);
+  if (cs && cs.getLastRow() > 1) valsData_(cs.getRange(2, 1, cs.getLastRow() - 1, 6), 0).forEach(function (r) {
+    if (!isIso_(r[0])) return;
+    var k = String(r[1]); var dt = r[0];
     cochoHist.push({ data: dt, modulo: k, pasto: String(r[2]), produto: String(r[3]), sacos: num_(r[4]), kg: num_(r[5]) });
     if (!ultCocho[k] || ultCocho[k].data < dt) ultCocho[k] = { data: dt, produto: String(r[3]), sacos: num_(r[4]), kg: num_(r[5]) };
   });
@@ -465,8 +465,8 @@ function dados_(u) {
   LER_TZ = chs.getSpreadsheetTimeZone();
   var ch = chs.getSheetByName('LANÇAMENTOS');
   var cn = ultimaLinha_(ch, 1);
-  var cv = cn > 1 ? ch.getRange(2, 1, cn - 1, 2).getValues() : [];
-  out.chuva = cv.filter(function (r) { return r[0] instanceof Date; }).map(function (r) { return [iso_(r[0]), num_(r[1])]; })
+  var cv = cn > 1 ? valsData_(ch.getRange(2, 1, cn - 1, 2), 0) : [];
+  out.chuva = cv.filter(function (r) { return isIso_(r[0]); }).map(function (r) { return [r[0], num_(r[1])]; })
     .sort(function (p, q) { return p[0] < q[0] ? -1 : 1; });
 
   // Bebedouros, contagens, máquinas, regras, meus lançamentos
@@ -654,6 +654,14 @@ function telegram_(texto) {
 
 /* ---------------- utilidades ---------------- */
 
+// lê valores trocando a coluna de data pelo texto que aparece na planilha (evita erro de fuso)
+function valsData_(rng, colData) {
+  var v = rng.getValues(), d = rng.getDisplayValues();
+  v.forEach(function (r, i) { if (r[colData] instanceof Date) r[colData] = isoBr_(d[i][colData]); });
+  return v;
+}
+
+
 function sheet_(id, nome, cab) {
   var ss = SpreadsheetApp.openById(id);
   var sh = ss.getSheetByName(nome);
@@ -677,14 +685,14 @@ function ultimaLinha_(sh, col) {
 function ultimas_(sh, ncol, qtd) {
   if (!sh || sh.getLastRow() < 2) return [];
   var ini = Math.max(2, sh.getLastRow() - qtd + 1);
-  return sh.getRange(ini, 1, sh.getLastRow() - ini + 1, ncol).getValues().filter(function (r) { return r[0] !== ''; }).reverse();
+  return valsData_(sh.getRange(ini, 1, sh.getLastRow() - ini + 1, ncol), 0).filter(function (r) { return r[0] !== ''; }).reverse();
 }
 
 function ultimoPor_(sh, keyCol, dateCol, ncol) {
   var o = {};
   if (!sh || sh.getLastRow() < 2) return o;
-  sh.getRange(2, 1, sh.getLastRow() - 1, ncol).getValues().forEach(function (r) {
-    if (!(r[dateCol] instanceof Date)) return;
+  valsData_(sh.getRange(2, 1, sh.getLastRow() - 1, ncol), dateCol).forEach(function (r) {
+    if (!isIso_(r[dateCol])) return;
     var k = String(r[keyCol]); var dt = iso_(r[dateCol]);
     if (k && (!o[k] || o[k].data < dt)) o[k] = { data: dt, obs: String(r[2] || ''), user: String(r[3] || '') };
   });
@@ -712,6 +720,7 @@ function iso_(d) {
   if (d instanceof Date) return Utilities.formatDate(d, LER_TZ, 'yyyy-MM-dd'); // fuso da planilha que está sendo lida
   return isoBr_(d);
 }
+function isIso_(s) { return /^\d{4}-\d{2}-\d{2}$/.test(String(s)); }
 function isoBr_(s) {
   var m = /^(\d{1,2})\/(\d{1,2})\/(\d{4})/.exec(String(s || ''));
   return m ? m[3] + '-' + ('0' + m[2]).slice(-2) + '-' + ('0' + m[1]).slice(-2) : String(s || '');
