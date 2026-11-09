@@ -11,53 +11,82 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
 <style>
-:root{--verde:#1F3D2B;--verde2:#2E5A3F;--laranja:#CF6B33;--fundo:#F4F2EC;--card:#fff;--txt:#1d241f;--cinza:#6b7268;--borda:#d9d6cc;--vermelho:#B3261E;--amarelo:#C98A00;--ok:#2E7D4F}
+:root{--verde:#1F3D2B;--verde2:#2E5A3F;--laranja:#CF6B33;--laranja2:#E8761A;--fundo:#F4F2EC;--card:#fff;--txt:#1d241f;--cinza:#6b7268;--borda:#d9d6cc;--vermelho:#B3261E;--ok:#2E7D4F;--azul:#2f6fb3;--rosa:#d45a93}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;background:var(--fundo);color:var(--txt);font:16px/1.35 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
 header{position:sticky;top:0;z-index:1000;background:var(--verde);color:#fff;display:flex;align-items:center;gap:10px;padding:10px 16px;padding-top:calc(10px + env(safe-area-inset-top));border-bottom:3px solid var(--laranja)}
 header .tit{font-weight:800;letter-spacing:.08em;font-size:15px;flex:1}
 header .tit b{color:var(--laranja)}
 header img{width:40px;height:40px;border-radius:50%}
-header .voltar{background:none;border:0;color:#fff;font-size:26px;padding:0 6px 0 0;cursor:pointer;display:none}
-main{padding:14px 16px 90px;max-width:640px;margin:0 auto}
+header .voltar{background:none;border:0;color:#fff;font-size:28px;padding:0 6px 0 0;cursor:pointer;display:none;line-height:1}
+main{padding:14px 16px 110px;max-width:680px;margin:0 auto}
 .card{background:var(--card);border:1px solid var(--borda);border-radius:12px;padding:14px;margin-bottom:12px}
 .linha{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 .btn{border:2px solid var(--verde);background:#fff;color:var(--verde);border-radius:10px;padding:11px 16px;font-size:16px;font-weight:600;cursor:pointer}
 .btn.prim{background:var(--verde);color:#fff}
 .btn.lar{background:var(--laranja);border-color:var(--laranja);color:#fff}
+.btn.vm{border-color:var(--vermelho);color:var(--vermelho)}
 .btn.peq{padding:6px 10px;font-size:14px}
 .btn.full{width:100%}
 .btn:disabled{opacity:.5}
 .grade{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-.tile{border:2px solid var(--verde);border-radius:14px;background:#fff;min-height:104px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;font-weight:700;font-size:16px;color:var(--txt);cursor:pointer;padding:10px;text-align:center}
+.tile{border:2px solid var(--verde);border-radius:14px;background:#fff;min-height:100px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;font-weight:700;font-size:16px;color:var(--txt);cursor:pointer;padding:10px;text-align:center}
 .tile svg{width:30px;height:30px;stroke:var(--verde);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 .tile:active{background:#eef3ee}
 label{display:block;font-size:13px;color:var(--cinza);margin:10px 0 4px}
 input,select,textarea{width:100%;font-size:17px;padding:11px 12px;border:1px solid var(--borda);border-radius:10px;background:#fff;color:var(--txt)}
-textarea{min-height:64px}
+input[type=checkbox]{width:22px;height:22px}
 .seg{display:flex;border:2px solid var(--verde);border-radius:10px;overflow:hidden}
 .seg button{flex:1;border:0;background:#fff;padding:10px 6px;font-size:15px;font-weight:600;color:var(--verde);cursor:pointer}
 .seg button.on{background:var(--verde);color:#fff}
+.abas{display:flex;gap:6px;overflow-x:auto;margin:0 -16px 12px;padding:0 16px;scrollbar-width:none}
+.abas button{flex:0 0 auto;border:0;border-radius:20px;background:#e6e3d9;padding:9px 14px;font-size:15px;font-weight:600;color:var(--txt);cursor:pointer}
+.abas button.on{background:var(--verde);color:#fff}
 h2{font-size:19px;margin:4px 0 12px}
 h3{font-size:15px;margin:0 0 8px;color:var(--verde)}
+.sec{font-weight:700;color:var(--verde);margin:16px 0 8px;font-size:15px}
 .muted{color:var(--cinza);font-size:14px}
-.tag{display:inline-block;border-radius:20px;padding:2px 9px;font-size:13px;font-weight:600}
-.t-ok{background:#E3F1E7;color:var(--ok)}.t-am{background:#FBF0D3;color:#8a5d00}.t-vm{background:#F9E1DF;color:var(--vermelho)}.t-cz{background:#ECECE8;color:#555}
+.tag{display:inline-block;border-radius:20px;padding:2px 9px;font-size:12px;font-weight:700;white-space:nowrap}
+.t-ok{background:#E3F1E7;color:var(--ok)}.t-am{background:#FBF0D3;color:#8a5d00}.t-vm{background:#F9E1DF;color:var(--vermelho)}.t-cz{background:#ECECE8;color:#555}.t-az{background:#E2ECF7;color:var(--azul)}
 table{width:100%;border-collapse:collapse;font-size:14px}
-td,th{padding:7px 4px;border-bottom:1px solid #eee;text-align:left}
+td,th{padding:7px 4px;border-bottom:1px solid #eee;text-align:left;vertical-align:top}
 th{color:var(--cinza);font-weight:600;font-size:12px}
 td.n,th.n{text-align:right}
+.rolar{overflow-x:auto;margin:0 -14px;padding:0 14px}
+.rolar table{min-width:760px;font-size:13px}
 .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#222;color:#fff;padding:12px 18px;border-radius:10px;z-index:3000;max-width:90%;font-size:15px;display:none}
-#mapa{height:calc(100vh - 150px);border-radius:12px;border:1px solid var(--borda)}
+#mapa{height:calc(100vh - 160px);border-radius:12px;border:1px solid var(--borda)}
 .leaflet-tooltip.rot{background:none;border:0;box-shadow:none;color:#fff;font-weight:700;text-shadow:0 0 3px #000,0 0 3px #000;font-size:11px;padding:0}
 .leaflet-tooltip.rot:before{display:none}
-.kpi{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
-.kpi div{background:#F7F6F1;border-radius:10px;padding:8px;text-align:center}
-.kpi b{display:block;font-size:20px}
-.kpi span{font-size:12px;color:var(--cinza)}
-.rowx{display:grid;grid-template-columns:1fr 110px 40px;gap:8px;align-items:center;margin-bottom:8px}
-.x{border:0;background:#eee;border-radius:8px;height:44px;font-size:20px;cursor:pointer}
+.kpis{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.kpis.k3{grid-template-columns:repeat(3,1fr)}
+.kpi{background:#fff;border:1px solid var(--borda);border-radius:10px;padding:10px}
+.kpi span{display:block;font-size:11px;color:var(--cinza);text-transform:uppercase;letter-spacing:.02em}
+.kpi b{display:block;font-size:21px;margin-top:2px}
+.kpi b i{font-style:normal}
+.kpi.c{text-align:center}
+.x{border:0;background:#eee;border-radius:8px;height:44px;min-width:44px;font-size:20px;cursor:pointer}
 .status{font-size:13px;color:var(--cinza);margin-top:8px}
+.barra{position:fixed;left:0;right:0;bottom:0;background:var(--verde);padding:10px 16px calc(10px + env(safe-area-inset-bottom));z-index:1500;text-align:center}
+.barra .muted{color:#dfe8df;font-size:13px;margin-bottom:6px}
+.barra .btn{width:100%;max-width:648px;background:#16a34a;border-color:#16a34a;color:#fff}
+.avisos{background:#F9E1DF;border:1px solid #efb6b0;color:var(--vermelho);border-radius:12px;padding:10px 14px;margin-bottom:12px;cursor:pointer}
+.avisos b{display:block;margin-bottom:4px}
+.avisos div{font-size:14px;color:#7a1d17}
+.pastorow{display:grid;grid-template-columns:70px 1fr 90px;gap:8px;align-items:center;padding:8px 0;border-bottom:1px solid #eee}
+.pastorow b{color:var(--laranja);font-size:17px}
+.mod{border-radius:12px;overflow:hidden;margin-bottom:10px;border:1px solid #e3a46d}
+.mod .hd{background:var(--laranja2);color:#fff;padding:10px 14px;display:flex;align-items:center;gap:8px;cursor:pointer}
+.mod .hd div{flex:1}
+.mod .hd small{display:block;font-size:12px;opacity:.9}
+.mod .bd{background:#fff;padding:12px 14px}
+.chip{background:#fff;border-radius:20px;padding:2px 9px;font-size:12px;font-weight:700}
+.chip.acima{color:var(--vermelho)}.chip.aumentar{color:#a86a00}.chip.ok{color:var(--ok)}.chip.semlote{color:#777}
+.pcard{border:1px solid var(--borda);border-radius:10px;padding:10px;margin-bottom:8px}
+.pcard.atrasado{border-color:#e5a29c;background:#fff6f5}
+.pcard.atual{border-color:#9cc9ab;background:#f5fbf6}
+.lrow{display:grid;grid-template-columns:1fr 72px 80px 40px;gap:6px;margin-bottom:6px}
+.lrow input{padding:9px 8px;font-size:15px}
 .oculto{display:none!important}
 </style>
 </head>
@@ -68,47 +97,52 @@ td.n,th.n{text-align:right}
   <img src="icon-192.png" alt="">
 </header>
 <main id="app"></main>
+<div id="barra"></div>
 <div class="toast" id="toast"></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script>
 /* ======= configuração ======= */
 const API = 'https://script.google.com/macros/s/AKfycbwY3RA38GPBgCJ4UZjjwriIR1XyGTsPuZ1mBAuUJ_TNuZuF4nQg7P_q68GT8okeYCZd/exec';
-const VERSAO = '1.0';
+const VERSAO = '2.0';
 
 /* ======= estado ======= */
 const LS = {
   get(k, d){ try{ const v = localStorage.getItem('fl_'+k); return v==null ? d : JSON.parse(v); }catch(e){ return d; } },
-  set(k, v){ try{ localStorage.setItem('fl_'+k, JSON.stringify(v)); }catch(e){} }
+  set(k, v){ try{ localStorage.setItem('fl_'+k, JSON.stringify(v)); return true; }catch(e){ return false; } }
 };
-let user = LS.get('user', null);           // {u,p,nome}
-let fila = LS.get('fila', []);             // [{id,tipo,d,ts,user}]
-let dados = LS.get('dados', null);         // último pacote do servidor
+let user = LS.get('user', null);
+let fila = LS.get('fila', []);
+let dados = LS.get('dados2', null);
 let fazenda = LS.get('fazenda', 'Lorenzetti');
 let enviando = false;
 
 const $ = s => document.querySelector(s);
 const app = $('#app');
-const esc = s => String(s==null?'':s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-const hojeISO = () => { const d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); };
+const esc = s => String(s==null?'':s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const pad = n => String(n).padStart(2,'0');
+const isoDe = d => d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
+const hojeISO = () => isoDe(new Date());
 const br = iso => { if(!iso) return '—'; const m=/^(\d{4})-(\d{2})-(\d{2})/.exec(iso); return m? m[3]+'/'+m[2]+'/'+m[1] : iso; };
-const diasDesde = iso => { if(!iso) return null; const m=/^(\d{4})-(\d{2})-(\d{2})/.exec(iso); if(!m) return null; const d=new Date(+m[1],m[2]-1,+m[3]); const h=new Date(); h.setHours(0,0,0,0); return Math.round((h-d)/864e5); };
-const fmt = n => (Number(n)||0).toLocaleString('pt-BR');
+const parseISO = iso => { const m=/^(\d{4})-(\d{2})-(\d{2})/.exec(iso||''); return m? new Date(+m[1],m[2]-1,+m[3]) : null; };
+const diasEntre = (a,b) => { const x=parseISO(a), y=parseISO(b); return x&&y ? Math.round((y-x)/864e5) : null; };
+const diasDesde = iso => diasEntre(iso, hojeISO());
+const somaDias = (iso,n) => { const d=parseISO(iso); d.setDate(d.getDate()+n); return isoDe(d); };
+const fmt = (n,dec) => (Number(n)||0).toLocaleString('pt-BR',{maximumFractionDigits:dec==null?0:dec, minimumFractionDigits:dec||0});
 const norm = s => String(s||'').toUpperCase().replace(/PASTO/g,'').replace(/[\s\-]/g,'').trim();
 const uid = () => Date.now().toString(36)+Math.random().toString(36).slice(2,8);
+const MESES = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
 function toast(msg, ms){ const t=$('#toast'); t.textContent=msg; t.style.display='block'; clearTimeout(t._h); t._h=setTimeout(()=>t.style.display='none', ms||2600); }
 
 /* ======= ícones ======= */
 const IC = {
   trato:'<svg viewBox="0 0 24 24"><path d="M3 10h18l-2 9H5z"/><path d="M7 10V6h10v4"/></svg>',
-  manejo:'<svg viewBox="0 0 24 24"><path d="M4 8h13l-3-3M20 16H7l3 3"/></svg>',
+  rot:'<svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.3-5.6"/><path d="M20 4v5h-5"/></svg>',
   gado:'<svg viewBox="0 0 24 24"><path d="M4 9c0-2 2-3 4-3h8c2 0 4 1 4 3v3c0 2-2 4-4 4H8c-2 0-4-2-4-4z"/><path d="M7 16v3M17 16v3M3 7l2 1M21 7l-2 1"/></svg>',
-  transf:'<svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/><path d="M5 6v12"/></svg>',
-  chuva:'<svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 0 1 18 0z"/><path d="M12 12v7a2 2 0 0 1-4 0"/></svg>',
+  chuva:'<svg viewBox="0 0 24 24"><path d="M7 16a4 4 0 0 1-.6-8A6 6 0 0 1 18 8.5a3.8 3.8 0 0 1-.5 7.5"/><path d="M13 12l-3 5h4l-3 5"/></svg>',
   morte:'<svg viewBox="0 0 24 24"><path d="M12 3v18M7 8h10"/></svg>',
   contagem:'<svg viewBox="0 0 24 24"><path d="M9 4 7 20M17 4l-2 16M4 9h17M3 15h17"/></svg>',
-  lote:'<svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>',
   bebedouro:'<svg viewBox="0 0 24 24"><path d="M12 3s6 7 6 11a6 6 0 0 1-12 0c0-4 6-11 6-11z"/></svg>',
-  cocho:'<svg viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="14" rx="1"/><path d="M12 5v14" /><path d="M4 12h8"/></svg>',
+  cocho:'<svg viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="14" rx="1"/><path d="M12 5v14"/><path d="M4 12h8"/></svg>',
   maquina:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="8"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2"/></svg>',
   mapa:'<svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16"/><path d="M4 9h16M4 14h16M9 4v16M14 4v16"/></svg>',
   painel:'<svg viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>'
@@ -116,7 +150,7 @@ const IC = {
 
 /* ======= navegação ======= */
 let tela = 'home';
-function ir(t, arg){ tela=t; $('#btVoltar').style.display = (t==='home'||t==='login')?'none':'block'; window.scrollTo(0,0); (TELAS[t]||TELAS.home)(arg); if(t!=='home') history.pushState({t},'' ); }
+function ir(t, arg){ tela=t; $('#barra').innerHTML=''; $('#btVoltar').style.display = (t==='home'||t==='login')?'none':'block'; window.scrollTo(0,0); (TELAS[t]||TELAS.home)(arg); if(t!=='home') history.pushState({t},''); }
 window.addEventListener('popstate', ()=>{ if(tela!=='home' && tela!=='login') ir('home'); });
 
 /* ======= API ======= */
@@ -134,7 +168,7 @@ async function sincronizar(silencioso){
   try{
     const tentados = new Set(); let enviados = 0, comErro = 0;
     while(true){
-      const lote = fila.filter(x => !tentados.has(x.id)).slice(0, 40);
+      const lote = fila.filter(x => !tentados.has(x.id)).slice(0, 15);
       if(!lote.length) break;
       lote.forEach(x => tentados.add(x.id));
       const j = await api({a:'sync', itens: lote});
@@ -148,37 +182,86 @@ async function sincronizar(silencioso){
     if(comErro) toast(comErro+' lançamento(s) deram erro. Veja a fila.', 4000);
     else if(enviados && !silencioso) toast(enviados+' lançamento(s) enviados ✔');
     const d = await api({a:'dados'});
-    dados = d.dados; LS.set('dados', dados); LS.set('dadosEm', new Date().toISOString());
-    if(!silencioso && !fila.length) toast('Dados atualizados ✔');
+    dados = d.dados; aplicaFila(); salvaDados(); LS.set('dadosEm', new Date().toISOString());
+    if(!silencioso && !enviados && !comErro) toast('Dados atualizados ✔');
   }catch(e){
     if(!silencioso) toast('Não sincronizou: '+e.message, 4000);
   }finally{ enviando=false; render(); }
 }
+function salvaDados(){ if(!LS.set('dados2', dados)) toast('Celular sem espaço para guardar os dados', 4000); }
 
-function lancar(tipo, d, aplicaLocal){
+/* aplica no pacote local o que ainda está na fila, para as telas já mostrarem */
+const APLICA = {};
+function aplicaFila(){ if(!dados) return; fila.forEach(x => { try{ APLICA[x.tipo] && APLICA[x.tipo](dados, x.d); }catch(e){} }); }
+function lancar(tipo, d){
   const it = {id: uid(), tipo, d, ts: new Date().toISOString(), user: user.nome};
-  fila.push(it); LS.set('fila', fila);
-  if(aplicaLocal && dados){ try{ aplicaLocal(dados); LS.set('dados', dados); }catch(e){} }
+  fila.push(it);
+  if(!LS.set('fila', fila)){ fila.pop(); if(d.foto){ delete d.foto; fila.push(it); LS.set('fila', fila); toast('Sem espaço para a foto — lançamento salvo sem foto', 4500); } else { toast('Celular sem espaço!', 4000); return null; } }
+  if(dados && APLICA[tipo]){ try{ APLICA[tipo](dados, d); salvaDados(); }catch(e){} }
   return it;
 }
-function salvo(n){ toast((n>1? n+' lançamentos salvos':'Lançamento salvo')+' na fila'+(navigator.onLine?' — enviando…':' (sem internet)')); ir('home'); if(navigator.onLine) sincronizar(true); }
+function salvo(n, volta){ toast((n>1? n+' lançamentos salvos':'Lançamento salvo')+(navigator.onLine?' — enviando…':' na fila (sem internet)')); if(volta!==false) ir(volta||'home'); if(navigator.onLine) sincronizar(true); }
 
-/* ======= helpers de formulário ======= */
-const campoData = (id) => `<label>Data</label><input type="date" id="${id||'fData'}" value="${hojeISO()}">`;
-function seg(id, opcoes, ativo){ return `<div class="seg" id="${id}" data-v="${esc(ativo)}">`+opcoes.map(o=>`<button type="button" data-v="${esc(o[0])}" class="${o[0]===ativo?'on':''}" onclick="segClick(this)">${esc(o[1])}</button>`).join('')+'</div>'; }
-function segClick(b){ const p=b.parentNode; p.querySelectorAll('button').forEach(x=>x.classList.remove('on')); b.classList.add('on'); p.dataset.v=b.dataset.v; if(p.onchange) p.onchange(); }
-const val = id => { const e=document.getElementById(id); return e ? (e.dataset && e.dataset.v!==undefined && e.classList.contains('seg') ? e.dataset.v : e.value.trim()) : ''; };
-const fazendas = () => { const s = dados && dados.gado ? Object.keys(dados.gado.saldo) : []; ['Lorenzetti','União'].forEach(f=>{ if(!s.includes(f)) s.push(f); }); return s; };
-const pastosSemi = () => dados && dados.semi ? dados.semi.pastos.map(p=>p.pasto) : [];
-const modulos = () => dados && dados.modulos ? dados.modulos : [];
-function opts(lista, sel){ return lista.map(v=> Array.isArray(v) ? `<option value="${esc(v[0])}" ${v[0]==sel?'selected':''}>${esc(v[1])}</option>` : `<option ${v==sel?'selected':''}>${esc(v)}</option>`).join(''); }
+APLICA.gado = (D,d) => { const m=+d.machos||0, f=+d.femeas||0; D.gado.lanc.push(d.mov==='saida'? [d.data,0,0,m,f,(d.obs||'').toUpperCase(),d.fazenda] : [d.data,m,f,0,0,(d.obs||'').toUpperCase(),d.fazenda]); };
+APLICA.transf = (D,d) => { const m=+d.machos||0, f=+d.femeas||0; D.gado.lanc.push([d.data,0,0,m,f,'TRANSF. P/ '+d.para.toUpperCase(),d.de]); D.gado.lanc.push([d.data,m,f,0,0,'TRANSF. DA '+d.de.toUpperCase(),d.para]); };
+APLICA.morte = (D,d) => { const q=+d.qtd||1; D.gado.lanc.push([d.data,0,0,d.sexo==='F'?0:q,d.sexo==='F'?q:0,'MORTE '+(d.causa||'').toUpperCase(),d.fazenda]); };
+APLICA.trato = (D,d) => { const k=d.pasto.toUpperCase(); const u=D.semi.ultTrato[k]; if(!u||u.data<=d.data) D.semi.ultTrato[k]={data:d.data,kg:+d.kg}; D.semi.recentes.unshift({data:d.data,pasto:k,kg:+d.kg,quem:d.tratador}); };
+APLICA.chuva = (D,d) => { D.chuva.push([d.data,+d.mm]); D.chuva.sort((a,b)=>a[0]<b[0]?-1:1); };
+APLICA.manejo = (D,d) => { const m=String(d.modulo); if(d.datas){ Object.keys(D.rot.datas).forEach(k=>{ if(k.split('||')[0]===m) delete D.rot.datas[k]; }); Object.keys(d.datas).forEach(p=>{ if(d.datas[p]) D.rot.datas[m+'||'+p]=d.datas[p]; }); } if(d.lotes) D.rot.lotes[m]=d.lotes.map(l=>({categoria:l.categoria,cabecas:+l.cabecas||0,peso:+l.peso||0})); };
+APLICA.contagem = (D,d) => D.contagens.unshift({data:d.data,local:d.local,cab:+d.cabecas,faz:d.fazenda});
+APLICA.bebedouro = (D,d) => { const u=D.bebedouros[d.local]; if(!u||u.data<=d.data) D.bebedouros[d.local]={data:d.data,obs:d.obs}; D.bebHist.unshift({data:d.data,local:d.local,user:user.nome}); };
+APLICA.cocho = (D,d) => { D.ultCocho[d.modulo]={data:d.data,produto:d.produto,sacos:+d.sacos,kg:+d.kg}; D.cochoHist.unshift({data:d.data,modulo:d.modulo,pasto:d.pasto,produto:d.produto,sacos:+d.sacos,kg:+d.kg}); };
+APLICA.maquina = (D,d) => D.maqHist.unshift({data:d.data,maquina:d.maquina,tipo:d.tipo,horimetro:+d.horimetro,litros:+d.litros,desc:d.desc,user:user.nome});
+APLICA.maq_nova = (D,d) => { if(!D.maquinas.find(m=>m.nome.toUpperCase()===d.nome.toUpperCase())) D.maquinas.push({nome:d.nome,tipo:d.tipo}); };
+APLICA.regras = (D,d) => { Object.keys(d.regras).forEach(k=>{ if(D.regras[k]) Object.assign(D.regras[k], d.regras[k]); }); };
+
+/* ======= helpers ======= */
+const campoData = (id, v) => `<label>Data</label><input type="date" id="${id||'fData'}" value="${v||hojeISO()}">`;
+function seg(id, opcoes, ativo, onchg){ return `<div class="seg" id="${id}" data-v="${esc(ativo)}" data-chg="${onchg||''}">`+opcoes.map(o=>`<button type="button" data-v="${esc(o[0])}" class="${o[0]===ativo?'on':''}" onclick="segClick(this)">${esc(o[1])}</button>`).join('')+'</div>'; }
+function segClick(b){ const p=b.parentNode; p.querySelectorAll('button').forEach(x=>x.classList.remove('on')); b.classList.add('on'); p.dataset.v=b.dataset.v; if(p.dataset.chg) window[p.dataset.chg](b.dataset.v); }
+const val = id => { const e=document.getElementById(id); if(!e) return ''; return e.classList.contains('seg') ? e.dataset.v : e.value.trim(); };
+const FAZENDAS = ['Lorenzetti','União'];
+function opts(lista, sel){ return lista.map(v=> Array.isArray(v) ? `<option value="${esc(v[0])}" ${String(v[0])===String(sel)?'selected':''}>${esc(v[1])}</option>` : `<option ${v==sel?'selected':''}>${esc(v)}</option>`).join(''); }
+function abas(id, lista, ativo, fn){ return `<div class="abas" id="${id}">`+lista.map(a=>`<button class="${a[0]===ativo?'on':''}" onclick="${fn}('${a[0]}')">${a[1]}</button>`).join('')+'</div>'; }
+function kpi(rot, v, cls){ return `<div class="kpi ${cls||''}"><span>${rot}</span><b>${v}</b></div>`; }
+function semDados(){ return dados ? '' : `<div class="card t-am">Ainda não baixou os dados da fazenda. Conecte na internet e toque em <b>Sincronizar</b> uma vez.</div>`; }
+const modulos = () => dados ? dados.rot.modulos : [];
 function locaisTodos(){
-  const l = pastosSemi().map(p=>'Pasto '+p);
+  const l = dados ? dados.semi.pastos.filter(p=>p.bois).map(p=>'Pasto '+p.pasto) : [];
   modulos().forEach(m=>l.push('Módulo '+m.n));
   l.push('Curral','Sede','Outro');
   return l;
 }
-function semDados(){ return dados ? '' : `<div class="card t-am">Ainda não baixou os dados da fazenda. Conecte na internet e toque em <b>Sincronizar</b> uma vez.</div>`; }
+
+/* ======= gado: saldos ======= */
+const ehHist = f => /hist/i.test(f||'');
+function linhasGado(faz){ return (dados?dados.gado.lanc:[]).filter(r => !ehHist(r[6]) && (faz==='As duas' || (r[6]||'Lorenzetti')===faz)); }
+function saldoGado(faz){ let m=0,f=0; linhasGado(faz).forEach(r=>{ m+=r[1]-r[3]; f+=r[2]-r[4]; }); return {m,f}; }
+
+/* ======= rotacionado (mesma conta do app antigo) ======= */
+function calcModulo(mod, datas, lotes){
+  const H = hojeISO(), UA = dados.rot.uaKg || 450;
+  const lote = lotes[String(mod.n)] || [];
+  let ua=0, cab=0, somaPeso=0;
+  lote.forEach(l=>{ const c=+l.cabecas||0, p=+l.peso||0; ua+=c*p/UA; cab+=c; somaPeso+=c*p; });
+  const pesoMedio = cab>0 ? somaPeso/cab : 280, cabPorUA = pesoMedio/UA;
+  let status='semlote';
+  if(cab>0) status = ua > mod.cap+0.5 ? 'acima' : (ua < mod.cap*0.85 ? 'aumentar' : 'ok');
+  const difUA = mod.cap-ua, difCab = cabPorUA>0 ? Math.round(difUA/cabPorUA) : 0;
+  const ps = mod.pastos.map(p=>({nome:p[0], dias:p[1], entrada:'', saida:'', salva:false}));
+  for(let i=0;i<ps.length;i++){
+    const k = mod.n+'||'+ps[i].nome; let ent = datas[k]||'';
+    ps[i].salva = !!datas[k];
+    if(!ent && i>0 && ps[i-1].saida) ent = ps[i-1].saida;
+    ps[i].entrada = ent; ps[i].saida = ent ? somaDias(ent, ps[i].dias) : '';
+  }
+  let at=-1; ps.forEach((p,j)=>{ if(p.entrada && p.entrada<=H) at=j; });
+  ps.forEach((p,idx)=>{ p.estado=''; if(!p.entrada){ p.estado = idx>at?'prox':''; return; } if(idx<at) p.estado='feito'; else if(idx===at) p.estado = H>p.saida?'atrasado':'atual'; else p.estado='prox'; });
+  const atrasado = at>=0 && H>ps[at].saida;
+  return {ua, cab, status, difCab, pastos:ps, atrasado, diasAtraso: atrasado? diasEntre(ps[at].saida,H):0, pastoAtual: at>=0?ps[at]:null};
+}
+const CHIP = {ok:'Ajustado', acima:'Lotação acima', aumentar:'Cabe mais', semlote:'Sem lote'};
+const EST = {feito:['Concluído','t-ok'], atual:['No pasto','t-az'], atrasado:['Atrasado','t-vm'], prox:['Próximo','t-cz']};
 
 /* ======= telas ======= */
 const TELAS = {};
@@ -197,7 +280,7 @@ async function entrar(){
   try{
     user = {u, p, nome: u==='hugo'?'Hugo':'Gustavo'};
     const j = await api({a:'login'});
-    user.nome = j.nome; LS.set('user', user);
+    user.nome = j.nome; user.admin = !!j.admin; LS.set('user', user);
     toast('Bem-vindo, '+j.nome); ir('home'); sincronizar(true);
   }catch(e){ user=null; toast(navigator.onLine ? e.message : 'Sem internet para o primeiro acesso', 4000); }
 }
@@ -205,7 +288,8 @@ async function entrar(){
 TELAS.home = () => {
   const em = LS.get('dadosEm', null);
   const pend = fila.length, comErro = fila.filter(x=>x.erro).length;
-  const t = (k, nome, tela) => `<div class="tile" onclick="ir('${tela}')">${IC[k]}<span>${nome}</span></div>`;
+  const av = dados && dados.avisos ? dados.avisos : [];
+  const t = (k, nome, tl) => `<div class="tile" onclick="ir('${tl}')">${IC[k]}<span>${nome}</span></div>`;
   app.innerHTML = `${semDados()}
   <div class="card">
     <div class="linha" style="justify-content:space-between"><div><b>${esc(user.nome)}</b> <span class="muted">· ${navigator.onLine?'<span style="color:var(--ok)">online</span>':'<span style="color:var(--vermelho)">offline</span>'}</span></div>
@@ -216,189 +300,292 @@ TELAS.home = () => {
       <button class="btn" onclick="sair()">Trocar usuário</button>
     </div>
   </div>
-  <label>Fazenda</label><select id="selFaz" onchange="fazenda=this.value;LS.set('fazenda',fazenda)">${opts(fazendas(), fazenda)}</select>
+  ${av.length?`<div class="avisos" onclick="ir('painel')"><b>⚠ ${av.length} aviso(s)</b>${av.slice(0,4).map(a=>`<div>• ${esc(a.t)}</div>`).join('')}${av.length>4?`<div>… e mais ${av.length-4}</div>`:''}</div>`:''}
+  <label>Fazenda</label><select id="selFaz" onchange="fazenda=this.value;LS.set('fazenda',fazenda)">${opts(FAZENDAS, fazenda)}</select>
   <div style="height:12px"></div>
   <div class="grade">
-    ${t('trato','Trato','trato')}${t('manejo','Mudar de pasto','mudar')}
-    ${t('gado','Entrada / Saída','gado')}${t('transf','Transferência','transf')}
-    ${t('chuva','Chuva','chuva')}${t('morte','Morte','morte')}
-    ${t('contagem','Contagem','contagem')}${t('lote','Novo lote','lote')}
+    ${t('trato','Trato','trato')}${t('rot','Rotacionado','rot')}
+    ${t('gado','Controle de gado','gado')}${t('chuva','Chuva','chuva')}
+    ${t('morte','Morte','morte')}${t('contagem','Contagem','contagem')}
     ${t('bebedouro','Bebedouro','bebedouro')}${t('cocho','Cocho / sal','cocho')}
     ${t('maquina','Máquinas','maquinas')}${t('mapa','Mapa','mapa')}
   </div>
   <div style="height:12px"></div>
   <div class="tile" style="min-height:64px;flex-direction:row" onclick="ir('painel')">${IC.painel}<span>Painel</span></div>
+  ${user.admin?`<div style="text-align:center;margin-top:14px"><button class="btn peq" onclick="ir('regras')">⚙ Regras dos avisos</button></div>`:''}
   <p class="muted" style="text-align:center;margin-top:18px">v${VERSAO}</p>`;
 };
 function sair(){ if(fila.length && !confirm('Ainda tem '+fila.length+' lançamento(s) na fila. Eles continuam salvos neste celular. Trocar de usuário?')) return; user=null; LS.set('user',null); ir('login'); }
 
-/* ---- Trato ---- */
-TELAS.trato = () => {
-  const ps = pastosSemi();
-  app.innerHTML = `${semDados()}<h2>Trato</h2><div class="card">${campoData()}
-    <label>Pasto e kg (pode lançar vários de uma vez)</label>
-    <datalist id="dlSemi">${ps.map(p=>`<option value="${esc(p)}">`).join('')}</datalist>
-    <div id="linhasTrato"></div>
-    <button class="btn peq" onclick="addLinhaTrato()">+ outro pasto</button>
-    <label>Obs.</label><input id="fObs">
-    <div style="height:14px"></div><button class="btn prim full" onclick="salvaTrato()">Salvar</button></div>
-    ${ultimosTratos()}`;
-  addLinhaTrato();
+/* =================== TRATO (igual ao app antigo) =================== */
+let abaTrato = 'trato';
+TELAS.trato = (aba) => {
+  if(aba) abaTrato = aba;
+  if(!dados){ app.innerHTML = semDados(); return; }
+  app.innerHTML = abas('abT',[['painel','📊 Painel'],['giro','🐂 Giro 25'],['trato','+ Trato']],abaTrato,"ir.bind(null,'trato')")
+    + '<div id="tratoC"></div>';
+  document.querySelectorAll('#abT button').forEach((b,i)=>b.onclick=()=>ir('trato',['painel','giro','trato'][i]));
+  if(abaTrato==='painel') $('#tratoC').innerHTML = painelTrato();
+  else if(abaTrato==='giro') $('#tratoC').innerHTML = tabelaGiro();
+  else formTrato();
 };
-function addLinhaTrato(){
-  const d=document.createElement('div'); d.className='rowx';
-  d.innerHTML=`<input list="dlSemi" placeholder="Pasto" class="tp" autocapitalize="characters"><input type="number" inputmode="decimal" placeholder="kg" class="tk"><button class="x" onclick="this.parentNode.remove()">×</button>`;
-  $('#linhasTrato').appendChild(d);
+function painelTrato(){
+  const P = dados.semi.painel || [];
+  const bloco = (titulo, cab, vals) => { let h=`<div class="sec">${titulo}</div><div class="kpis">`; cab.forEach((c,i)=>{ if(!c || String(vals[i]||'').includes('R$') || /CUSTO/i.test(c)) return; h+=kpi(esc(c), esc(vals[i]||'—')); }); return h+'</div>'; };
+  let h = '';
+  if(P[1]) h += bloco('Rebanho', P[1], P[2]);
+  if(P[5]) h += bloco('Consumo', P[5], P[6]);
+  if(P[9]) h += bloco('Desempenho', P[9], P[10]);
+  if(P[17]){ h += `<div class="sec">Projeção de ganho</div><div class="card"><table><tr>${P[17].map((c,i)=>`<th class="${i?'n':''}">${esc(c)}</th>`).join('')}</tr>`;
+    for(let i=18;i<=21;i++) if(P[i]) h += `<tr>${P[i].map((c,j)=>`<td class="${j?'n':''}">${esc(c)}</td>`).join('')}</tr>`;
+    h += '</table></div>'; }
+  h += `<div class="sec">Último trato por pasto</div><div class="card">${ultTratoTabela()}</div>`;
+  return h || '<div class="card muted">Painel vazio.</div>';
 }
+function ultTratoTabela(){
+  const semi = dados.semi.pastos.filter(p=>p.bois).map(p=>{ const u=dados.semi.ultTrato[p.pasto]; return {p,u,d:u?diasDesde(u.data):null}; }).sort((a,b)=>(b.d==null?999:b.d)-(a.d==null?999:a.d));
+  const lim = dados.regras && dados.regras.semi_sem_trato ? dados.regras.semi_sem_trato.limite : 2;
+  return `<table><tr><th>Pasto</th><th class="n">Bois</th><th>Último</th><th class="n">kg</th><th class="n">Dias</th></tr>${semi.map(x=>`<tr><td><b>${esc(x.p.pasto)}</b></td><td class="n">${x.p.bois}</td><td>${x.u?br(x.u.data):'—'}</td><td class="n">${x.u?fmt(x.u.kg):''}</td><td class="n">${x.d==null?'—':`<span class="tag ${x.d>=lim?'t-vm':x.d>=lim-1?'t-am':'t-ok'}">${x.d}</span>`}</td></tr>`).join('')}</table>`;
+}
+function tabelaGiro(){
+  const c = dados.semi.cab || [], t = dados.semi.tabela || [];
+  return `<div class="card"><div class="rolar"><table><tr>${c.map((x,i)=>`<th class="${i>1?'n':''}">${esc(x)}</th>`).join('')}</tr>${t.map(r=>`<tr>${r.map((x,i)=>`<td class="${i>1?'n':''}">${i===0?`<b style="color:var(--laranja)">${esc(x)}</b>`:esc(x)}</td>`).join('')}</tr>`).join('')}</table></div><div class="muted" style="text-align:center;margin-top:6px">deslize a tabela para o lado →</div></div>`;
+}
+function formTrato(){
+  const ps = dados.semi.lista || [];
+  $('#tratoC').innerHTML = `<div class="card"><label>Data do trato</label><input type="date" id="fData" value="${hojeISO()}">
+    <label>Tratador</label><input id="fTratador" value="${esc(LS.get('tratador', user.nome))}"></div>
+    <div class="card">${ps.map((p,i)=>{ const u=dados.semi.ultTrato[p]; return `<div class="pastorow"><b>${esc(p)}</b><input type="number" inputmode="decimal" placeholder="kg" class="tk" data-p="${esc(p)}" oninput="contaTrato()"><span class="muted" style="font-size:12px">${u?br(u.data).slice(0,5)+' · '+fmt(u.kg):'—'}</span></div>`; }).join('')}
+    <div class="pastorow"><input id="fOutro" placeholder="Outro" autocapitalize="characters" style="font-weight:700"><input type="number" inputmode="decimal" placeholder="kg" class="tk" id="fOutroKg" oninput="contaTrato()"><span></span></div></div>
+    <div class="card"><h3>Últimos tratos</h3><table><tr><th>Data</th><th>Pasto</th><th class="n">kg</th><th>Quem</th></tr>${dados.semi.recentes.slice(0,15).map(r=>`<tr><td>${br(r.data)}</td><td>${esc(r.pasto)}</td><td class="n">${fmt(r.kg)}</td><td>${esc(r.quem||'')}</td></tr>`).join('')}</table></div>`;
+  $('#barra').innerHTML = `<div class="barra"><div class="muted" id="contTrato">Preencha o kg dos pastos tratados</div><button class="btn" onclick="salvaTrato()">Enviar trato</button></div>`;
+}
+function contaTrato(){ let n=0,kg=0; document.querySelectorAll('.tk').forEach(i=>{ if(+i.value){ n++; kg+= +i.value; } }); $('#contTrato').textContent = n? `${n} pasto(s) · ${fmt(kg)} kg` : 'Preencha o kg dos pastos tratados'; }
 function salvaTrato(){
-  const data=val('fData'), obs=val('fObs'); let n=0;
-  document.querySelectorAll('#linhasTrato .rowx').forEach(r=>{
-    const pasto=r.querySelector('.tp').value.trim().toUpperCase(), kg=r.querySelector('.tk').value;
-    if(!pasto||!kg) return;
-    lancar('trato',{data,pasto,kg:+kg,obs}, D=>{ const k=pasto; if(!D.semi.ultTrato[k]||D.semi.ultTrato[k].data<=data) D.semi.ultTrato[k]={data,kg:+kg}; D.semi.recentes.unshift({data,pasto,kg:+kg}); });
-    n++;
+  const data=val('fData'), tratador=val('fTratador')||user.nome; let n=0;
+  LS.set('tratador', tratador);
+  document.querySelectorAll('.tk').forEach(i=>{
+    const kg=+i.value; if(!kg) return;
+    const pasto = i.id==='fOutroKg' ? val('fOutro').toUpperCase() : i.dataset.p;
+    if(!pasto) return;
+    lancar('trato',{data,pasto,kg,tratador}); n++;
   });
-  if(!n) return toast('Preencha pasto e kg');
+  if(!n) return toast('Preencha o kg de pelo menos um pasto');
   salvo(n);
 }
-function ultimosTratos(){
-  if(!dados) return '';
-  const rows = dados.semi.recentes.slice(0,12).map(r=>`<tr><td>${br(r.data)}</td><td>${esc(r.pasto)}</td><td class="n">${fmt(r.kg)}</td></tr>`).join('');
-  return `<div class="card"><h3>Últimos tratos</h3><table><tr><th>Data</th><th>Pasto</th><th class="n">kg</th></tr>${rows}</table></div>`;
+
+/* =================== ROTACIONADO (igual ao app de manejo antigo) =================== */
+let abaRot='manejo', ROT=null, rotMudou=new Set(), rotAberto=new Set();
+function rotCopia(){ ROT = {datas: JSON.parse(JSON.stringify(dados.rot.datas)), lotes: JSON.parse(JSON.stringify(dados.rot.lotes))}; rotMudou=new Set(); }
+TELAS.rot = (aba) => {
+  if(!dados){ app.innerHTML = semDados(); return; }
+  if(aba) abaRot=aba;
+  if(!ROT || !rotMudou.size) rotCopia();
+  app.innerHTML = abas('abR',[['manejo','Manejo'],['resumo','Resumo'],['painel','Painel']],abaRot,'') + '<div id="rotC"></div>';
+  document.querySelectorAll('#abR button').forEach((b,i)=>b.onclick=()=>ir('rot',['manejo','resumo','painel'][i]));
+  if(abaRot==='manejo') rotManejo(); else if(abaRot==='resumo') $('#rotC').innerHTML=rotResumo(dados.rot.datas, dados.rot.lotes); else $('#rotC').innerHTML=rotPainel();
+};
+function rotAlertas(datas, lotes){
+  const al=[];
+  modulos().forEach(m=>{ const c=calcModulo(m,datas,lotes);
+    if(c.atrasado) al.push(`<div class="tag t-vm" style="display:block;white-space:normal;margin-bottom:6px;padding:8px 10px">⏰ <b>Passou da retirada:</b> Módulo ${m.n} - ${esc(c.pastoAtual.nome)} (venceu ${br(c.pastoAtual.saida)}, ${c.diasAtraso} d)</div>`);
+  });
+  modulos().forEach(m=>{ const c=calcModulo(m,datas,lotes);
+    if(c.status==='acima') al.push(`<div class="tag t-vm" style="display:block;white-space:normal;margin-bottom:6px;padding:8px 10px;background:#fde8e6">⚠ <b>Lotação acima:</b> Módulo ${m.n} (${Math.round(c.ua)}/${Math.round(m.cap)} UA · tirar ~${Math.abs(c.difCab)} cab)</div>`);
+  });
+  return al;
+}
+function rotManejo(){
+  const al = rotAlertas(ROT.datas, ROT.lotes);
+  let h = `<div class="card"><h3>ALERTAS</h3>${al.join('') || '<span class="muted">Nenhum alerta.</span>'}</div>`;
+  modulos().forEach(m=>{
+    const c = calcModulo(m, ROT.datas, ROT.lotes), ab = rotAberto.has(m.n);
+    h += `<div class="mod"><div class="hd" onclick="rotToggle(${m.n})"><div><b>Módulo ${m.n}</b>${rotMudou.has(m.n)?' ✎':''}<small>${fmt(m.area,1)} ha · cap. ${Math.round(m.cap)} UA${c.pastoAtual?' · '+esc(c.pastoAtual.nome):''}</small></div><span class="chip ${c.status}">${CHIP[c.status]}</span><span>${ab?'▲':'▼'}</span></div>`;
+    if(ab){
+      const lote = ROT.lotes[String(m.n)] || [];
+      h += `<div class="bd"><div class="muted" style="font-weight:700;margin-bottom:6px">LOTE NO MÓDULO</div>
+        <div class="lrow muted" style="font-size:11px"><span>Categoria</span><span>Cabeças</span><span>Peso kg</span><span></span></div>
+        ${lote.map((l,i)=>`<div class="lrow"><input value="${esc(l.categoria)}" list="dlCat" onchange="rotLote(${m.n},${i},'categoria',this.value)"><input type="number" inputmode="numeric" value="${l.cabecas||''}" onchange="rotLote(${m.n},${i},'cabecas',this.value)"><input type="number" inputmode="decimal" value="${l.peso||''}" onchange="rotLote(${m.n},${i},'peso',this.value)"><button class="x" onclick="rotLote(${m.n},${i},'x')">×</button></div>`).join('')}
+        <button class="btn peq full" style="border-style:dashed;border-color:var(--laranja);color:var(--laranja)" onclick="rotLote(${m.n},-1,'add')">+ categoria</button>
+        <div class="tag ${c.status==='acima'?'t-vm':c.status==='ok'?'t-ok':'t-am'}" style="display:block;margin:10px 0;padding:8px 10px;white-space:normal">${CHIP[c.status]} · ${Math.round(c.ua)} de ${Math.round(m.cap)} UA${c.cab? ' · '+(c.difCab>=0?'cabe +~'+c.difCab:'tirar ~'+Math.abs(c.difCab))+' cab':''}</div>
+        <div class="muted" style="font-weight:700;margin:10px 0 6px">PASTOS — LANCE A DATA DE ENTRADA</div>
+        ${c.pastos.map(p=>{ const e=EST[p.estado]; return `<div class="pcard ${p.estado}"><div class="linha" style="justify-content:space-between"><b>${esc(p.nome)}</b><span><span class="tag t-cz">${p.dias} d</span> ${e?`<span class="tag ${e[1]}">${e[0]}</span>`:''}</span></div>
+          <div class="grade" style="gap:8px"><div><label>Entrada</label><input type="date" value="${p.entrada}" onchange="rotData(${m.n},'${esc(p.nome).replace(/'/g,"\\'")}',this.value)" style="${p.salva?'':'color:#999'}"></div><div><label>Saída (auto)</label><input value="${br(p.saida)}" disabled style="color:var(--laranja);font-weight:700;background:#fff7f0"></div></div>
+          ${p.salva?`<a href="#" class="muted" style="font-size:12px" onclick="rotData(${m.n},'${esc(p.nome).replace(/'/g,"\\'")}','');return false">limpar esta data</a>`:''}</div>`; }).join('')}
+      </div>`;
+    }
+    h += '</div>';
+  });
+  h += `<datalist id="dlCat">${['Boi','Garrote','Novilha','Vaca','Bezerro','Bezerra','Touro'].map(c=>`<option value="${c}">`).join('')}</datalist>`;
+  $('#rotC').innerHTML = h;
+  $('#barra').innerHTML = `<div class="barra">${rotMudou.size?`<div class="muted">${rotMudou.size} módulo(s) alterado(s)</div>`:''}<button class="btn" onclick="rotSalvar()" ${rotMudou.size?'':'disabled'}>Salvar</button></div>`;
+}
+function rotToggle(n){ rotAberto.has(n)?rotAberto.delete(n):rotAberto.add(n); rotManejo(); }
+function rotData(n, pasto, v){ const k=n+'||'+pasto; if(v) ROT.datas[k]=v; else delete ROT.datas[k]; rotMudou.add(n); rotManejo(); }
+function rotLote(n, i, campo, v){ const k=String(n); const l = ROT.lotes[k] = ROT.lotes[k] || [];
+  if(campo==='add') l.push({categoria:'',cabecas:0,peso:0}); else if(campo==='x') l.splice(i,1); else l[i][campo] = campo==='categoria'? v : (+v||0);
+  rotMudou.add(n); rotManejo(); }
+function rotSalvar(){
+  let n=0;
+  rotMudou.forEach(m=>{
+    const datas={}; Object.keys(ROT.datas).forEach(k=>{ const p=k.split('||'); if(p[0]===String(m)) datas[p[1]]=ROT.datas[k]; });
+    modulos().find(x=>x.n==m).pastos.forEach(p=>{ if(!(p[0] in datas)) datas[p[0]]=''; });
+    const lotes=(ROT.lotes[String(m)]||[]).filter(l=>l.categoria||l.cabecas);
+    lancar('manejo',{modulo:m, datas, lotes}); n++;
+  });
+  rotMudou=new Set(); ROT=null;
+  toast(n+' módulo(s) salvo(s)'+(navigator.onLine?' — enviando…':' na fila'));
+  ir('rot','manejo'); if(navigator.onLine) sincronizar(true);
+}
+function rotResumo(datas, lotes){
+  return modulos().map(m=>{ const c=calcModulo(m,datas,lotes);
+    return `<div class="mod" style="border-color:#e3a46d"><div class="hd"><div><b>Módulo ${m.n}</b></div><small>${fmt(m.area,1)} ha · ${Math.round(m.cap)} UA · ${fmt(m.cap/m.area,2)} UA/ha</small></div><div class="bd" style="padding:4px 14px">
+    <table>${c.pastos.map(p=>`<tr style="${p.estado==='atual'||p.estado==='atrasado'?'background:#eef6ef':''}"><td>${esc(p.nome)} ${p.estado==='atrasado'?'<span class="tag t-vm">atrasado</span>':p.estado==='atual'?'<span class="tag t-az">atual</span>':''}</td><td class="n">${p.entrada?br(p.entrada)+' → '+br(p.saida):'—'}</td></tr>`).join('')}</table>
+    <div class="muted" style="padding:6px 0">${c.cab? c.cab+' cab · '+Math.round(c.ua)+' UA':'sem lote'}</div></div></div>`; }).join('');
+}
+function rotPainel(){
+  const ms = modulos(); let cab=0, ua=0, area=0, cap=0; const st={acima:0,ok:0,aumentar:0,semlote:0}; const venc=[];
+  ms.forEach(m=>{ const c=calcModulo(m,dados.rot.datas,dados.rot.lotes); cab+=c.cab; ua+=c.ua; area+=m.area; cap+=m.cap; st[c.status]++; if(c.atrasado) venc.push(`Módulo ${m.n} · ${esc(c.pastoAtual.nome)} (venceu ${br(c.pastoAtual.saida)}, ${c.diasAtraso} d)`); });
+  return `<div class="kpis">${kpi('Cabeças (cadastradas)',fmt(cab),'c')}${kpi('UA total',fmt(ua),'c')}${kpi('Lotados (diminuir)',`<i style="color:var(--vermelho)">${st.acima}</i>`,'c')}${kpi('Ajustados',`<i style="color:var(--ok)">${st.ok}</i>`,'c')}${kpi('Com folga',`<i style="color:#a86a00">${st.aumentar}</i>`,'c')}${kpi('Sem lote',st.semlote,'c')}</div>
+  <div class="card" style="margin-top:12px"><h3>REBANHO × PASTO</h3><table>
+    <tr><td>Área total dos módulos</td><td class="n"><b>${fmt(area,1)} ha</b></td></tr><tr><td>Capacidade total</td><td class="n"><b>${fmt(cap)} UA</b></td></tr>
+    <tr><td>Rebanho (UA total)</td><td class="n"><b>${fmt(ua)} UA</b></td></tr><tr><td>Taxa de lotação atual</td><td class="n"><b>${fmt(ua/area,2)} UA/ha</b></td></tr>
+    <tr><td>Capacidade de suporte</td><td class="n"><b>${fmt(cap/area,2)} UA/ha</b></td></tr></table></div>
+  <div class="card"><h3>PASTOS VENCIDOS</h3>${venc.map(v=>`<div style="color:var(--vermelho);padding:6px 0;border-bottom:1px solid #eee">⏰ ${v}</div>`).join('')||'<span class="muted">Nenhum.</span>'}</div>`;
 }
 
-/* ---- Mudar de pasto (rotacionado) ---- */
-TELAS.mudar = (mSel) => {
-  const ms = modulos();
-  if(!ms.length){ app.innerHTML = semDados()+'<h2>Mudar de pasto</h2>'; return; }
-  mSel = mSel || (ms.find(m=>m.atual)||ms[0]).n;
-  const m = ms.find(x=>x.n==mSel) || ms[0];
-  const at = m.atual, dias = at ? diasDesde(at.entrada) : null;
-  const plan = at ? (m.pastos.find(p=>norm(p.nome)===norm(at.pasto))||{}).dias : null;
-  const lotes = m.lotes.map(l=>`${l.cabecas} ${esc(l.categoria)} (${l.peso} kg)`).join(', ') || 'sem lote';
-  app.innerHTML = `<h2>Mudar de pasto</h2><div class="card">
-    <label>Módulo</label><select id="fMod" onchange="ir('mudar',this.value)">${opts(ms.map(x=>[x.n,'Módulo '+x.n+(x.atual?' — '+x.atual.pasto:'')]), m.n)}</select>
-    <div class="status">${esc(m.resumo)}<br>Lote: ${lotes}</div>
-    <div class="card" style="margin:10px 0 0;background:#F7F6F1">Pasto atual: <b>${at?esc(at.pasto):'—'}</b><br>
-      Entrou em ${at?br(at.entrada):'—'} · <b>${dias==null?'—':dias+' dias'}</b> ${plan?` de ${plan} planejados ${tagDias(dias,plan)}`:''}</div>
-    <label>Novo pasto</label><select id="fPasto">${opts(m.pastos.map(p=>[p.nome.trim(), p.nome.trim()+' ('+p.dias+' d)']), proximo(m))}</select>
+/* =================== CONTROLE DE GADO (igual ao app antigo) =================== */
+let abaGado='painel', filtroFaz='As duas', movGado='entrada', fazLanc=null, mesGado=null;
+TELAS.gado = (aba) => {
+  if(!dados){ app.innerHTML = semDados(); return; }
+  if(aba) abaGado=aba;
+  if(!fazLanc) fazLanc=fazenda;
+  const sL=saldoGado('Lorenzetti'), sU=saldoGado('União');
+  app.innerHTML = `<div class="muted" style="margin-bottom:8px">Saldo em ${br(hojeISO())} · Lorenzetti ${fmt(sL.m+sL.f)} · União ${fmt(sU.m+sU.f)}</div>`
+   + abas('abG',[['painel','Painel'],['lanc','Lançamentos']],abaGado,'')
+   + seg('fFiltro',[['Lorenzetti','Lorenzetti'],['União','União'],['As duas','As duas']],filtroFaz,'mudaFiltroGado')
+   + '<div id="gadoC" style="margin-top:12px"></div>';
+  document.querySelectorAll('#abG button').forEach((b,i)=>b.onclick=()=>ir('gado',['painel','lanc'][i]));
+  if(abaGado==='painel') gadoPainel(); else gadoLanc();
+};
+function mudaFiltroGado(v){ filtroFaz=v; ir('gado'); }
+function gadoPainel(){
+  const s = saldoGado(filtroFaz), mes = hojeISO().slice(0,7);
+  let ent=0, sai=0; linhasGado(filtroFaz).forEach(r=>{ if(r[0].slice(0,7)===mes){ ent+=r[1]+r[2]; sai+=r[3]+r[4]; } });
+  $('#gadoC').innerHTML = `<div class="kpis k3">${kpi('<span style="color:var(--azul)">●</span> Machos',fmt(s.m))}${kpi('<span style="color:var(--rosa)">●</span> Fêmeas',fmt(s.f))}${kpi('Total',fmt(s.m+s.f))}</div>
+  <div class="linha" style="margin:8px 0"><span class="tag t-cz">Este mês — entradas: ${fmt(ent)}</span><span class="tag t-cz">saídas: ${fmt(sai)}</span></div>
+  <div class="sec">Novo lançamento</div><div class="card">
+    <label>Fazenda</label>${seg('fFazL',FAZENDAS.map(f=>[f,f]),fazLanc,'mudaFazLanc')}
+    <div style="height:8px"></div>${seg('fMov',[['entrada','▲ Entrada'],['saida','▼ Saída'],['transf','⇄ Transf.']],movGado,'mudaMov')}
+    <div class="status" id="movTxt"></div>
     ${campoData()}
-    <label>Obs.</label><input id="fObs">
-    <div style="height:14px"></div><button class="btn prim full" onclick="salvaMudar('${esc(m.n)}')">Salvar mudança</button></div>
-    <div class="card"><h3>Pastos do módulo ${esc(m.n)}</h3><table><tr><th>Pasto</th><th class="n">Dias plan.</th></tr>${m.pastos.map(p=>`<tr><td>${esc(p.nome)}${at&&norm(p.nome)===norm(at.pasto)?' <span class="tag t-ok">atual</span>':''}</td><td class="n">${p.dias}</td></tr>`).join('')}</table></div>`;
-};
-function tagDias(d,plan){ if(d==null||!plan) return ''; if(d>plan) return '<span class="tag t-vm">passou</span>'; if(d>=plan) return '<span class="tag t-am">hoje</span>'; return '<span class="tag t-ok">ok</span>'; }
-function proximo(m){ if(!m.atual) return m.pastos[0]&&m.pastos[0].nome.trim(); const i=m.pastos.findIndex(p=>norm(p.nome)===norm(m.atual.pasto)); return (m.pastos[(i+1)%m.pastos.length]||{}).nome; }
-function salvaMudar(n){
-  const pasto=val('fPasto'), data=val('fData'), obs=val('fObs');
-  lancar('mudar',{modulo:n,pasto,data,obs}, D=>{ const m=D.modulos.find(x=>x.n==n); if(m) m.atual={pasto,entrada:data}; });
-  salvo(1);
+    <div class="grade"><div><label>Machos</label><input id="fM" type="number" inputmode="numeric" placeholder="0"></div><div><label>Fêmeas</label><input id="fF" type="number" inputmode="numeric" placeholder="0"></div></div>
+    <label>Observação (compra, venda, morte…)</label><input id="fObs" placeholder="EX.: VENDA P/ MARFRIG" autocapitalize="characters">
+    <div style="height:14px"></div><button class="btn lar full" onclick="salvaGado()">Salvar lançamento</button></div>
+  <a href="#" class="muted" onclick="desfazerGado();return false">Desfazer último lançamento</a>
+  <div class="sec">Evolução do rebanho (desde 2020)</div><div class="card">${graficoGado()}</div>
+  <div class="sec">Últimos lançamentos</div><div class="card">${tabelaGado(linhasGado(filtroFaz).slice(-12).reverse(), false)}</div>`;
+  mudaMov(movGado);
 }
-
-/* ---- Novo lote / ajustar ---- */
-TELAS.lote = () => {
-  const ms = modulos();
-  app.innerHTML = `${semDados()}<h2>Lote do rotacionado</h2><div class="card">
-    ${seg('fModo',[['novo','Novo'],['ajustar','Ajustar'],['remover','Tirar']],'novo')}
-    <label>Módulo</label><select id="fMod" onchange="lotesDoModulo()">${opts(ms.map(x=>[x.n,'Módulo '+x.n+(x.atual?' — '+x.atual.pasto:'')]))}</select>
-    <div class="status" id="lotesAtuais"></div>
-    <label>Categoria</label><input id="fCat" list="dlCat" placeholder="Boi, Garrote, Vaca, Bezerro…"><datalist id="dlCat">${['Boi','Garrote','Novilha','Vaca','Bezerro','Bezerra','Touro'].map(c=>`<option value="${c}">`).join('')}</datalist>
-    <div class="grade"><div><label>Cabeças</label><input id="fCab" type="number" inputmode="numeric"></div><div><label>Peso médio (kg)</label><input id="fPeso" type="number" inputmode="decimal"></div></div>
-    ${campoData()}<label>Obs.</label><input id="fObs">
-    <div style="height:14px"></div><button class="btn prim full" onclick="salvaLote()">Salvar</button></div>`;
-  lotesDoModulo();
-};
-function lotesDoModulo(){ const m=modulos().find(x=>x.n==val('fMod')); $('#lotesAtuais').innerHTML = m ? 'Hoje: '+(m.lotes.map(l=>`${l.cabecas} ${esc(l.categoria)} (${l.peso} kg)`).join(', ')||'sem lote') : ''; }
-function salvaLote(){
-  const d={modo:val('fModo'),modulo:val('fMod'),categoria:val('fCat'),cabecas:val('fCab'),peso:val('fPeso'),data:val('fData'),obs:val('fObs')};
-  if(!d.categoria) return toast('Informe a categoria');
-  if(d.modo!=='remover' && !d.cabecas) return toast('Informe as cabeças');
-  lancar('lote',d,D=>{ const m=D.modulos.find(x=>x.n==d.modulo); if(!m) return; const i=m.lotes.findIndex(l=>l.categoria.toUpperCase()===d.categoria.toUpperCase());
-    if(d.modo==='remover'){ if(i>=0) m.lotes.splice(i,1); } else if(i>=0){ m.lotes[i].cabecas=+d.cabecas; m.lotes[i].peso=+d.peso; } else m.lotes.push({categoria:d.categoria,cabecas:+d.cabecas,peso:+d.peso}); });
-  salvo(1);
-}
-
-/* ---- Gado entrada/saída ---- */
-TELAS.gado = () => {
-  app.innerHTML = `${semDados()}<h2>Entrada / Saída de gado</h2><div class="card">
-    ${seg('fMov',[['entrada','Entrada'],['saida','Saída']],'entrada')}
-    <label>Fazenda</label><select id="fFaz">${opts(fazendas(), fazenda)}</select>
-    <label>Sexo</label>${seg('fSexo',[['M','Macho'],['F','Fêmea']],'M')}
-    <label>Quantidade</label><input id="fQtd" type="number" inputmode="numeric">
-    ${campoData()}
-    <label>De quem / para quem (obs.)</label><input id="fObs" placeholder="Ex.: MINERVA TGA, compra Fulano…" autocapitalize="characters">
-    <div style="height:14px"></div><button class="btn prim full" onclick="salvaGado()">Salvar</button></div>${ultimosGado()}`;
-};
+function mudaFazLanc(v){ fazLanc=v; mudaMov(movGado); }
+function mudaMov(v){ movGado=v; const outra=FAZENDAS.find(f=>f!==fazLanc); const t=$('#movTxt'); if(t) t.textContent = v==='entrada'?`Entrada na ${fazLanc}.`: v==='saida'?`Saída da ${fazLanc}.`:`Transferência da ${fazLanc} para a ${outra} (grava 2 linhas).`; }
 function salvaGado(){
-  const d={mov:val('fMov'),fazenda:val('fFaz'),sexo:val('fSexo'),qtd:val('fQtd'),data:val('fData'),obs:val('fObs').toUpperCase()};
-  if(!+d.qtd) return toast('Informe a quantidade');
-  lancar('gado',d,D=>ajustaSaldo(D,d.fazenda,d.sexo,(d.mov==='saida'?-1:1)*d.qtd));
-  salvo(1);
+  const m=+val('fM')||0, f=+val('fF')||0;
+  if(!m && !f) return toast('Informe machos ou fêmeas');
+  const data=val('fData'), obs=val('fObs').toUpperCase();
+  if(movGado==='transf') lancar('transf',{de:fazLanc,para:FAZENDAS.find(x=>x!==fazLanc),machos:m,femeas:f,data,obs});
+  else lancar('gado',{mov:movGado,fazenda:fazLanc,machos:m,femeas:f,data,obs});
+  salvo(1, false); ir('gado','painel');
 }
-function ajustaSaldo(D,faz,sexo,q){ const s=D.gado.saldo[faz]||(D.gado.saldo[faz]={m:0,f:0}); if(sexo==='F') s.f+= +q; else s.m+= +q; }
-function ultimosGado(){
-  if(!dados) return '';
-  const rows=dados.gado.ultimos.slice(0,10).map(r=>{ const e=r.em+r.ef, s=r.sm+r.sf; return `<tr><td>${br(r.data)}</td><td>${esc(r.faz)}</td><td class="n">${e?'+'+e:'-'+s}</td><td>${esc(r.obs)}</td></tr>`; }).join('');
-  return `<div class="card"><h3>Últimos lançamentos</h3><table><tr><th>Data</th><th>Faz.</th><th class="n">Cab.</th><th>Obs.</th></tr>${rows}</table></div>`;
+async function desfazerGado(){
+  const pend = [...fila].reverse().find(x=>['gado','transf','morte'].includes(x.tipo));
+  if(pend){ if(!confirm('Apagar da fila: '+resumo(pend)+'?')) return; fila=fila.filter(x=>x!==pend); LS.set('fila',fila); toast('Tirado da fila'); if(navigator.onLine) await sincronizar(true); return ir('gado'); }
+  const ult = (dados.meus||[]).find(x=>['gado','transf','morte'].includes(x.tipo) && x.sit==='OK' && x.pode);
+  if(!ult) return toast('Nada para desfazer');
+  if(!navigator.onLine) return toast('Precisa de internet para desfazer o que já foi enviado');
+  if(!confirm('Apagar da planilha: '+resumo(ult)+'?')) return;
+  try{ await api({a:'apagar', id: ult.id}); toast('Apagado ✔'); await sincronizar(true); ir('gado'); }catch(e){ toast(e.message, 4500); }
+}
+function tabelaGado(rows, comSaldo){
+  return `<table><tr><th>Data</th><th class="n">Machos</th><th class="n">Fêmeas</th>${comSaldo?'<th class="n">Saldo</th>':''}<th>Observação</th></tr>${rows.map(r=>{ const dm=r[1]-r[3], df=r[2]-r[4]; const c=v=>v?`<b style="color:${v>0?'var(--ok)':'var(--vermelho)'}">${v>0?'+':'−'}${fmt(Math.abs(v))}</b>`:''; return `<tr><td>${br(r[0])}<br><span class="muted" style="font-size:11px">${esc(r[6])}</span></td><td class="n">${c(dm)}</td><td class="n">${c(df)}</td>${comSaldo?`<td class="n">${fmt(r.saldo)}</td>`:''}<td style="font-size:12px">${esc(r[5])}</td></tr>`; }).join('')}</table>`;
+}
+function graficoGado(){
+  const rows = linhasGado(filtroFaz); if(!rows.length) return '';
+  const meses = {}; let m=0,f=0;
+  rows.slice().sort((a,b)=>a[0]<b[0]?-1:1).forEach(r=>{ m+=r[1]-r[3]; f+=r[2]-r[4]; meses[r[0].slice(0,7)]=[m,f]; });
+  const ks=[]; let d=new Date(2020,0,1); const fim=hojeISO().slice(0,7); let last=[0,0];
+  while(isoDe(d).slice(0,7)<=fim){ const k=isoDe(d).slice(0,7); if(meses[k]) last=meses[k]; else { const prev=Object.keys(meses).filter(x=>x<k).pop(); if(prev) last=meses[prev]; } ks.push([k,last[0],last[1]]); d.setMonth(d.getMonth()+1); }
+  const W=640,H=240,L=56,B=24,T=8,R=8; const mx=Math.max(...ks.map(x=>Math.max(x[1],x[2])),1);
+  const step=Math.pow(10,Math.floor(Math.log10(mx))); const top=Math.ceil(mx/step)*step;
+  const X=i=>L+(W-L-R)*i/(ks.length-1||1), Y=v=>T+(H-T-B)*(1-v/top);
+  let s=`<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto">`;
+  for(let i=0;i<=4;i++){ const v=top*i/4; s+=`<line x1="${L}" x2="${W-R}" y1="${Y(v)}" y2="${Y(v)}" stroke="#eadfcd"/><text x="${L-6}" y="${Y(v)+4}" font-size="14" text-anchor="end" fill="#777">${fmt(v)}</text>`; }
+  ks.forEach((k,i)=>{ if(k[0].endsWith('-01')) s+=`<text x="${X(i)}" y="${H-6}" font-size="14" text-anchor="middle" fill="#777">${k[0].slice(0,4)}</text>`; });
+  const path=j=>ks.map((k,i)=>(i?'L':'M')+X(i).toFixed(1)+' '+Y(k[j]).toFixed(1)).join(' ');
+  s+=`<path d="${path(1)}" fill="none" stroke="#2f6fb3" stroke-width="2"/><path d="${path(2)}" fill="none" stroke="#d45a93" stroke-width="2"/></svg>`;
+  return `<div class="muted" style="font-size:12px"><span style="color:var(--azul)">●</span> Machos <span style="color:var(--rosa)">●</span> Fêmeas</div>`+s;
+}
+function gadoLanc(){
+  const rows = linhasGado(filtroFaz);
+  const meses = [...new Set(rows.map(r=>r[0].slice(0,7)))].sort().reverse();
+  if(!mesGado || !meses.includes(mesGado)) mesGado = meses[0];
+  let sm=0, sf=0; const lista=[];
+  rows.forEach(r=>{ sm+=r[1]-r[3]; sf+=r[2]-r[4]; if(r[0].slice(0,7)===mesGado){ const x=r.slice(); x.saldo=sm+sf; lista.push(x); } });
+  $('#gadoC').innerHTML = `<label>Mês para conferir</label><select onchange="mesGado=this.value;gadoLanc()">${opts(meses.map(k=>[k, MESES[+k.slice(5,7)-1]+'/'+k.slice(2,4)]), mesGado)}</select>
+  <div class="card" style="margin-top:12px">${tabelaGado(lista, true)}</div>`;
 }
 
-/* ---- Transferência ---- */
-TELAS.transf = () => {
-  const fz=fazendas(), outra=fz.find(f=>f!==fazenda)||'União';
-  app.innerHTML = `${semDados()}<h2>Transferência entre fazendas</h2><div class="card">
-    <div class="grade"><div><label>De</label><select id="fDe">${opts(fz,fazenda)}</select></div><div><label>Para</label><select id="fPara">${opts(fz,outra)}</select></div></div>
-    <label>Sexo</label>${seg('fSexo',[['M','Macho'],['F','Fêmea']],'M')}
-    <label>Quantidade</label><input id="fQtd" type="number" inputmode="numeric">
-    ${campoData()}<label>Obs.</label><input id="fObs">
-    <div class="status">Grava duas linhas: saída em uma fazenda e entrada na outra.</div>
-    <div style="height:14px"></div><button class="btn prim full" onclick="salvaTransf()">Salvar</button></div>`;
-};
-function salvaTransf(){
-  const d={de:val('fDe'),para:val('fPara'),sexo:val('fSexo'),qtd:val('fQtd'),data:val('fData'),obs:val('fObs')};
-  if(d.de===d.para) return toast('Escolha fazendas diferentes');
-  if(!+d.qtd) return toast('Informe a quantidade');
-  lancar('transf',d,D=>{ ajustaSaldo(D,d.de,d.sexo,-d.qtd); ajustaSaldo(D,d.para,d.sexo,+d.qtd); });
-  salvo(1);
-}
-
-/* ---- Morte ---- */
+/* =================== MORTE (com foto) =================== */
+let fotoMorte = null;
 TELAS.morte = () => {
+  fotoMorte = null;
   app.innerHTML = `${semDados()}<h2>Morte</h2><div class="card">
-    <label>Fazenda</label><select id="fFaz">${opts(fazendas(), fazenda)}</select>
+    <label>Fazenda</label><select id="fFaz">${opts(FAZENDAS, fazenda)}</select>
     <label>Sexo</label>${seg('fSexo',[['M','Macho'],['F','Fêmea']],'M')}
     <div class="grade"><div><label>Quantidade</label><input id="fQtd" type="number" inputmode="numeric" value="1"></div><div><label>Brinco / número</label><input id="fBrinco" inputmode="numeric"></div></div>
     <label>Pasto / local</label><input id="fPasto" list="dlLoc"><datalist id="dlLoc">${locaisTodos().map(l=>`<option value="${esc(l)}">`).join('')}</datalist>
     <label>Causa</label><input id="fCausa" list="dlCausa" placeholder="Ex.: fraqueza, cobra, raio, intoxicação"><datalist id="dlCausa">${['FRAQUEZA','COBRA','RAIO','INTOXICAÇÃO','ACIDENTE','DOENÇA','NÃO IDENTIFICADA'].map(c=>`<option value="${c}">`).join('')}</datalist>
     ${campoData()}<label>Obs.</label><input id="fObs">
-    <div class="status">Entra como saída no controle de gado, com "MORTE" na observação.</div>
-    <div style="height:14px"></div><button class="btn prim full" onclick="salvaMorte()">Salvar</button></div>`;
+    <label>Foto</label><input type="file" accept="image/*" capture="environment" onchange="pegaFoto(this)">
+    <img id="fotoPrev" class="oculto" style="width:100%;border-radius:10px;margin-top:8px">
+    <div class="status">Entra como saída no controle de gado, com "MORTE" na observação. A foto vai para uma pasta no Google Drive.</div>
+    <div style="height:14px"></div><button class="btn prim full" onclick="salvaMorte()">Salvar</button></div>
+    ${dados&&dados.mortes&&dados.mortes.length?`<div class="card"><h3>Últimas mortes</h3><table>${dados.mortes.slice(0,10).map(r=>`<tr><td>${br(r.data)}</td><td>${esc(r.faz)}</td><td>${esc(r.pasto)}</td><td>${esc(r.causa)}</td><td>${r.foto?`<a href="${esc(r.foto)}" target="_blank">foto</a>`:''}</td></tr>`).join('')}</table></div>`:''}`;
 };
+function pegaFoto(inp){
+  const f = inp.files && inp.files[0]; if(!f) return;
+  const img = new Image(); const url = URL.createObjectURL(f);
+  img.onload = () => { const max=1024, k=Math.min(1, max/Math.max(img.width,img.height)); const c=document.createElement('canvas'); c.width=Math.round(img.width*k); c.height=Math.round(img.height*k); c.getContext('2d').drawImage(img,0,0,c.width,c.height); fotoMorte=c.toDataURL('image/jpeg',0.6); const p=$('#fotoPrev'); p.src=fotoMorte; p.classList.remove('oculto'); URL.revokeObjectURL(url); };
+  img.src = url;
+}
 function salvaMorte(){
   const d={fazenda:val('fFaz'),sexo:val('fSexo'),qtd:val('fQtd')||1,brinco:val('fBrinco'),pasto:val('fPasto'),causa:val('fCausa'),data:val('fData'),obs:val('fObs')};
-  lancar('morte',d,D=>ajustaSaldo(D,d.fazenda,d.sexo,-d.qtd)); salvo(1);
+  if(fotoMorte) d.foto=fotoMorte;
+  if(lancar('morte',d)) salvo(1);
 }
 
-/* ---- Chuva ---- */
+/* =================== CHUVA =================== */
 TELAS.chuva = () => {
-  const c = dados && dados.chuva;
   app.innerHTML = `${semDados()}<h2>Chuva</h2><div class="card">${campoData()}
     <label>Milímetros</label><input id="fMm" type="number" inputmode="decimal" step="0.1">
     <label>Obs.</label><input id="fObs">
-    <div style="height:14px"></div><button class="btn prim full" onclick="salvaChuva()">Salvar</button></div>
-    ${c?`<div class="card"><div class="kpi"><div><b>${fmt(c.totalMes)}</b><span>mm no mês</span></div><div><b>${fmt(c.totalAno)}</b><span>mm no ano</span></div><div><b>${c.recentes[0]?diasDesde(c.recentes[0].data):'—'}</b><span>dias sem chuva</span></div></div>
-      <table style="margin-top:10px"><tr><th>Data</th><th class="n">mm</th></tr>${c.recentes.slice(0,12).map(r=>`<tr><td>${br(r.data)}</td><td class="n">${fmt(r.mm)}</td></tr>`).join('')}</table></div>`:''}`;
+    <div style="height:14px"></div><button class="btn prim full" onclick="salvaChuva()">Salvar</button></div>${dados?painelChuva():''}`;
 };
-function salvaChuva(){
-  const d={data:val('fData'),mm:val('fMm'),obs:val('fObs')};
-  if(d.mm==='') return toast('Informe os mm');
-  lancar('chuva',d,D=>{ D.chuva.recentes.unshift({data:d.data,mm:+d.mm}); D.chuva.recentes.sort((a,b)=>a.data<b.data?1:-1); if(d.data.slice(0,4)===hojeISO().slice(0,4)) D.chuva.totalAno+= +d.mm; if(d.data.slice(0,7)===hojeISO().slice(0,7)) D.chuva.totalMes+= +d.mm; });
-  salvo(1);
+function painelChuva(){
+  const c = dados.chuva || [], H=hojeISO(), ano=+H.slice(0,4);
+  const comChuva = c.filter(x=>x[1]>0), ult = comChuva[comChuva.length-1];
+  const tot = (a,m) => c.filter(x=>+x[0].slice(0,4)===a && (m==null || +x[0].slice(5,7)===m)).reduce((s,x)=>s+x[1],0);
+  let h = `<div class="kpis k3">${kpi('mm no mês',fmt(tot(ano,+H.slice(5,7))))}${kpi('mm no ano',fmt(tot(ano)))}${kpi('dias sem chuva',ult?diasEntre(ult[0],H):'—')}</div>`;
+  h += `<div class="card" style="margin-top:12px"><h3>Por mês</h3><table><tr><th>Mês</th><th class="n">${ano}</th><th class="n">${ano-1}</th></tr>${MESES.map((m,i)=>`<tr><td>${m}</td><td class="n">${fmt(tot(ano,i+1))}</td><td class="n">${fmt(tot(ano-1,i+1))}</td></tr>`).join('')}<tr><td><b>Total</b></td><td class="n"><b>${fmt(tot(ano))}</b></td><td class="n"><b>${fmt(tot(ano-1))}</b></td></tr></table></div>`;
+  h += `<div class="card"><h3>Últimas chuvas</h3><table><tr><th>Data</th><th class="n">mm</th></tr>${comChuva.slice(-12).reverse().map(r=>`<tr><td>${br(r[0])}</td><td class="n">${fmt(r[1],1)}</td></tr>`).join('')}</table></div>`;
+  return h;
 }
+function salvaChuva(){ const d={data:val('fData'),mm:val('fMm'),obs:val('fObs')}; if(d.mm==='') return toast('Informe os mm'); lancar('chuva',d); salvo(1); }
 
-/* ---- Contagem ---- */
+/* =================== CONTAGEM =================== */
 TELAS.contagem = () => {
   app.innerHTML = `${semDados()}<h2>Contagem</h2><div class="card">
-    <label>Fazenda</label><select id="fFaz">${opts(fazendas(), fazenda)}</select>
+    <label>Fazenda</label><select id="fFaz">${opts(FAZENDAS, fazenda)}</select>
     <label>Local</label><select id="fLocal" onchange="esperado()">${opts(locaisTodos())}</select>
     <div class="status" id="esp"></div>
     <label>Cabeças contadas</label><input id="fCab" type="number" inputmode="numeric" oninput="esperado()">
@@ -410,69 +597,72 @@ TELAS.contagem = () => {
 function esperadoDe(local){
   if(!dados) return null;
   if(local.startsWith('Pasto ')){ const p=dados.semi.pastos.find(x=>x.pasto===local.slice(6)); return p? p.bois : null; }
-  if(local.startsWith('Módulo ')){ const m=dados.modulos.find(x=>x.n==local.slice(7)); return m? m.lotes.reduce((s,l)=>s+l.cabecas,0) : null; }
+  if(local.startsWith('Módulo ')){ const l=dados.rot.lotes[local.slice(7)]||[]; return l.reduce((s,x)=>s+(+x.cabecas||0),0); }
   return null;
 }
 function esperado(){ const e=esperadoDe(val('fLocal')), c=+val('fCab'); $('#esp').innerHTML = e==null?'':`Na planilha: <b>${fmt(e)}</b> cab.`+(c? (c===e?' <span class="tag t-ok">bate</span>':` <span class="tag t-vm">diferença ${c-e>0?'+':''}${c-e}</span>`):''); }
-function salvaContagem(){
-  const d={fazenda:val('fFaz'),local:val('fLocal'),cabecas:val('fCab'),data:val('fData'),obs:val('fObs')};
-  if(d.cabecas==='') return toast('Informe as cabeças');
-  lancar('contagem',d,D=>D.contagens.unshift({data:d.data,local:d.local,cab:+d.cabecas})); salvo(1);
-}
+function salvaContagem(){ const d={fazenda:val('fFaz'),local:val('fLocal'),cabecas:val('fCab'),data:val('fData'),obs:val('fObs')}; if(d.cabecas==='') return toast('Informe as cabeças'); lancar('contagem',d); salvo(1); }
 
-/* ---- Bebedouro ---- */
-const LIM_BEB = 7;
+/* =================== BEBEDOURO =================== */
+const limBeb = () => dados && dados.regras && dados.regras.bebedouro ? dados.regras.bebedouro.limite : 7;
 TELAS.bebedouro = () => {
-  const b = dados ? dados.bebedouros : {};
-  const lista = locaisTodos().filter(l=>!['Outro'].includes(l)).map(l=>{ const u=b[l]; const dd=u?diasDesde(u.data):null; return {l,u,dd}; });
   app.innerHTML = `${semDados()}<h2>Lavagem de bebedouro</h2><div class="card">
-    <label>Local</label><select id="fLocal">${opts(lista.map(x=>x.l))}</select>
+    <label>Local</label><select id="fLocal">${opts(locaisTodos().filter(l=>l!=='Outro'))}</select>
     ${campoData()}<label>Obs.</label><input id="fObs">
-    <div style="height:14px"></div><button class="btn prim full" onclick="salvaBeb()">Salvar</button></div>
-    <div class="card"><h3>Última lavagem (atrasado depois de ${LIM_BEB} dias)</h3><table><tr><th>Local</th><th>Última</th><th class="n">Dias</th></tr>
-    ${lista.map(x=>`<tr><td>${esc(x.l)}</td><td>${x.u?br(x.u.data):'—'}</td><td class="n">${x.dd==null?'<span class="tag t-cz">nunca</span>':`<span class="tag ${x.dd>LIM_BEB?'t-vm':x.dd>=LIM_BEB-1?'t-am':'t-ok'}">${x.dd}</span>`}</td></tr>`).join('')}</table></div>`;
+    <div style="height:14px"></div><button class="btn prim full" onclick="salvaBeb()">Salvar</button></div>${dados?painelBeb():''}`;
 };
-function salvaBeb(){ const d={local:val('fLocal'),data:val('fData'),obs:val('fObs')}; lancar('bebedouro',d,D=>{ const u=D.bebedouros[d.local]; if(!u||u.data<=d.data) D.bebedouros[d.local]={data:d.data,obs:d.obs}; }); salvo(1); }
+function painelBeb(){
+  const b = dados.bebedouros, L=limBeb();
+  const lista = locaisTodos().filter(l=>l!=='Outro').map(l=>{ const u=b[l]; return {l,u,dd:u?diasDesde(u.data):null}; }).sort((a,c)=>(c.dd==null?999:c.dd)-(a.dd==null?999:a.dd));
+  return `<div class="card"><h3>Última lavagem (atrasado depois de ${L} dias)</h3><table><tr><th>Local</th><th>Última</th><th class="n">Dias</th></tr>
+    ${lista.map(x=>`<tr><td>${esc(x.l)}</td><td>${x.u?br(x.u.data):'—'}</td><td class="n">${x.dd==null?'<span class="tag t-cz">nunca</span>':`<span class="tag ${x.dd>=L?'t-vm':x.dd>=L-1?'t-am':'t-ok'}">${x.dd}</span>`}</td></tr>`).join('')}</table></div>`;
+}
+function salvaBeb(){ lancar('bebedouro',{local:val('fLocal'),data:val('fData'),obs:val('fObs')}); salvo(1); }
 
-/* ---- Cocho / sal (rotacionado) ---- */
+/* =================== COCHO / SAL =================== */
 TELAS.cocho = () => {
-  const ms = modulos();
   if(!dados){ app.innerHTML = semDados()+'<h2>Cocho / sal</h2>'; return; }
-  app.innerHTML = `${semDados()}<h2>Cocho / sal</h2><div class="card">
-    <label>Módulo</label><select id="fMod" onchange="cochoMod()">${opts(ms.map(x=>[x.n,'Módulo '+x.n+(x.atual?' — '+x.atual.pasto:'')]))}</select>
+  const ms = modulos();
+  const comLote = ms.filter(m=>(dados.rot.lotes[String(m.n)]||[]).length);
+  app.innerHTML = `<h2>Cocho / sal</h2><div class="card">
+    <label>Módulo</label><select id="fMod" onchange="cochoMod()">${opts(ms.map(x=>{ const c=calcModulo(x,dados.rot.datas,dados.rot.lotes); return [x.n,'Módulo '+x.n+(c.pastoAtual&&c.cab?' — '+c.pastoAtual.nome:'')]; }), (comLote[0]||ms[0]).n)}</select>
     <label>Pasto</label><select id="fPasto"></select>
     <div class="status" id="cochoUlt"></div>
     <label>Produto</label><input id="fProd" list="dlProd" value="${esc(LS.get('ultProduto',''))}"><datalist id="dlProd">${['Sal mineral','Proteinado','Ureia','Sal branco'].map(c=>`<option value="${c}">`).join('')}</datalist>
     <div class="grade"><div><label>Sacos</label><input id="fSacos" type="number" inputmode="decimal" oninput="cochoKg()"></div><div><label>Kg por saco</label><input id="fKgS" type="number" inputmode="decimal" value="${LS.get('kgSaco',30)}" oninput="cochoKg()"></div></div>
     <div class="status" id="cochoTot"></div>
     ${campoData()}<label>Obs.</label><input id="fObs">
-    <div style="height:14px"></div><button class="btn prim full" onclick="salvaCocho()">Salvar</button></div>
-    <div class="card"><h3>Último abastecimento por módulo</h3><table><tr><th>Módulo</th><th>Data</th><th class="n">Dias</th><th class="n">Sacos</th></tr>
-    ${ms.map(m=>{ const u=dados.ultCocho[m.n]; return `<tr><td>${m.n}</td><td>${u?br(u.data):'—'}</td><td class="n">${u?diasDesde(u.data):'—'}</td><td class="n">${u?fmt(u.sacos):''}</td></tr>`; }).join('')}</table></div>`;
+    <div style="height:14px"></div><button class="btn prim full" onclick="salvaCocho()">Salvar</button></div>${painelCocho()}`;
   cochoMod();
 };
-function cochoMod(){ const m=modulos().find(x=>x.n==val('fMod')); if(!m) return; $('#fPasto').innerHTML=opts(m.pastos.map(p=>p.nome.trim()), m.atual?m.atual.pasto.trim():''); const u=dados.ultCocho[m.n]; $('#cochoUlt').textContent = u? `Último: ${br(u.data)} — ${u.sacos} sacos de ${u.produto}` : 'Sem abastecimento lançado.'; }
+function painelCocho(){
+  const L = dados.regras && dados.regras.cocho ? dados.regras.cocho.limite : 7;
+  return `<div class="card"><h3>Último abastecimento por módulo</h3><table><tr><th>Módulo</th><th>Data</th><th class="n">Dias</th><th class="n">Sacos</th><th>Produto</th></tr>
+    ${modulos().map(m=>{ const u=dados.ultCocho[String(m.n)]; const d=u?diasDesde(u.data):null; return `<tr><td>${m.n}</td><td>${u?br(u.data):'—'}</td><td class="n">${d==null?'—':`<span class="tag ${d>=L?'t-vm':'t-ok'}">${d}</span>`}</td><td class="n">${u?fmt(u.sacos):''}</td><td>${u?esc(u.produto):''}</td></tr>`; }).join('')}</table></div>`;
+}
+function cochoMod(){ const m=modulos().find(x=>x.n==val('fMod')); if(!m) return; const c=calcModulo(m,dados.rot.datas,dados.rot.lotes); $('#fPasto').innerHTML=opts(m.pastos.map(p=>p[0]), c.pastoAtual?c.pastoAtual.nome:''); const u=dados.ultCocho[String(m.n)]; $('#cochoUlt').textContent = u? `Último: ${br(u.data)} — ${u.sacos} sacos de ${u.produto}` : 'Sem abastecimento lançado.'; }
 function cochoKg(){ const s=+val('fSacos'), k=+val('fKgS'); $('#cochoTot').textContent = s&&k ? 'Total: '+fmt(s*k)+' kg' : ''; }
 function salvaCocho(){
   const sacos=+val('fSacos'), kgs=+val('fKgS');
-  const d={modulo:val('fMod'),pasto:val('fPasto'),produto:val('fProd'),sacos,kg:sacos*kgs,data:val('fData'),obs:val('fObs')};
   if(!sacos) return toast('Informe os sacos');
+  const d={modulo:val('fMod'),pasto:val('fPasto'),produto:val('fProd'),sacos,kg:sacos*kgs,data:val('fData'),obs:val('fObs')};
   LS.set('ultProduto',d.produto); LS.set('kgSaco',kgs);
-  lancar('cocho',d,D=>{ D.ultCocho[d.modulo]={data:d.data,produto:d.produto,sacos,kg:d.kg}; }); salvo(1);
+  lancar('cocho',d); salvo(1);
 }
 
-/* ---- Máquinas ---- */
+/* =================== MÁQUINAS =================== */
 TELAS.maquinas = () => {
-  const ms = dados ? dados.maquinas : [];
-  const hist = dados ? dados.maqHist : [];
-  const ult = n => hist.find(h=>h.maquina===n);
-  app.innerHTML = `${semDados()}<h2>Máquinas</h2>
-    ${ms.map(m=>{ const u=ult(m.nome); return `<div class="card" onclick="ir('maquina','${esc(m.nome).replace(/'/g,"\\'")}')" style="cursor:pointer"><b>${esc(m.nome)}</b> <span class="muted">${esc(m.tipo)}</span><div class="muted">${u? 'Último: '+br(u.data)+' · '+esc(u.tipo)+(u.horimetro?' · '+fmt(u.horimetro)+' h':'') : 'sem histórico'}</div></div>`; }).join('') || '<div class="card muted">Nenhuma máquina cadastrada ainda.</div>'}
+  app.innerHTML = `${semDados()}<h2>Máquinas</h2>${dados?listaMaq(true):''}
     <div class="card"><h3>Cadastrar máquina</h3><label>Nome</label><input id="fNome" placeholder="Ex.: Trator MF 4292">
     <label>Tipo</label><input id="fTipo" list="dlTipoM"><datalist id="dlTipoM">${['Trator','Pá carregadeira','Caminhão','Camionete','Moto','Vagão','Roçadeira','Gerador','Outro'].map(c=>`<option value="${c}">`).join('')}</datalist>
     <div style="height:14px"></div><button class="btn full" onclick="novaMaq()">+ Cadastrar</button></div>`;
 };
-function novaMaq(){ const d={nome:val('fNome'),tipo:val('fTipo')}; if(!d.nome) return toast('Informe o nome'); lancar('maq_nova',d,D=>{ if(!D.maquinas.find(m=>m.nome.toUpperCase()===d.nome.toUpperCase())) D.maquinas.push({nome:d.nome,tipo:d.tipo}); }); toast('Máquina cadastrada'); ir('maquinas'); if(navigator.onLine) sincronizar(true); }
+function listaMaq(clic){
+  const hist = dados.maqHist;
+  return dados.maquinas.map(m=>{ const h=hist.filter(x=>x.maquina===m.nome); const u=h[0]; const lit=h.filter(x=>x.data.slice(0,7)===hojeISO().slice(0,7)).reduce((s,x)=>s+x.litros,0);
+    return `<div class="card" ${clic?`onclick="ir('maquina','${esc(m.nome).replace(/'/g,"\\'")}')" style="cursor:pointer"`:''}><b>${esc(m.nome)}</b> <span class="muted">${esc(m.tipo)}</span><div class="muted">${u? 'Último: '+br(u.data)+' · '+esc(u.tipo)+(u.horimetro?' · '+fmt(u.horimetro)+' h':'') : 'sem histórico'}${lit?' · '+fmt(lit)+' L no mês':''}</div></div>`; }).join('') || '<div class="card muted">Nenhuma máquina cadastrada ainda.</div>';
+}
+function novaMaq(){ const d={nome:val('fNome'),tipo:val('fTipo')}; if(!d.nome) return toast('Informe o nome'); lancar('maq_nova',d); toast('Máquina cadastrada'); ir('maquinas'); if(navigator.onLine) sincronizar(true); }
 TELAS.maquina = (nome) => {
   const hist = (dados?dados.maqHist:[]).filter(h=>h.maquina===nome);
   app.innerHTML = `<h2>${esc(nome)}</h2><div class="card">
@@ -485,55 +675,109 @@ TELAS.maquina = (nome) => {
     ${hist.map(h=>`<tr><td>${br(h.data)}</td><td>${esc(h.tipo)}</td><td class="n">${h.horimetro?fmt(h.horimetro):''}</td><td class="n">${h.litros?fmt(h.litros):''}</td><td>${esc(h.desc)}</td></tr>`).join('')||'<tr><td colspan="5" class="muted">Sem histórico</td></tr>'}</table></div>`;
 };
 function salvaMaq(nome){
-  const d={maquina:nome,tipo:val('fTipoL'),horimetro:val('fHor'),litros:val('fLit'),desc:val('fDesc'),data:val('fData')};
-  lancar('maquina',d,D=>D.maqHist.unshift({data:d.data,maquina:nome,tipo:d.tipo,horimetro:+d.horimetro,litros:+d.litros,desc:d.desc,user:user.nome}));
-  toast('Salvo na fila'); ir('maquina',nome); if(navigator.onLine) sincronizar(true);
+  lancar('maquina',{maquina:nome,tipo:val('fTipoL'),horimetro:val('fHor'),litros:val('fLit'),desc:val('fDesc'),data:val('fData')});
+  toast('Salvo'); ir('maquina',nome); if(navigator.onLine) sincronizar(true);
 }
 
-/* ---- Fila ---- */
-const NOMES = {gado:'Entrada/Saída',transf:'Transferência',morte:'Morte',trato:'Trato',chuva:'Chuva',mudar:'Mudar de pasto',lote:'Lote',contagem:'Contagem',bebedouro:'Bebedouro',cocho:'Cocho/sal',maquina:'Máquina',maq_nova:'Nova máquina'};
-function resumo(x){ const d=x.d; switch(x.tipo){
+/* =================== FILA + CORRIGIR / APAGAR =================== */
+const NOMES = {gado:'Controle de gado',transf:'Transferência',morte:'Morte',trato:'Trato',chuva:'Chuva',mudar:'Mudar de pasto',lote:'Lote',manejo:'Rotacionado',contagem:'Contagem',bebedouro:'Bebedouro',cocho:'Cocho/sal',maquina:'Máquina',maq_nova:'Nova máquina',regras:'Regras'};
+function resumo(x){ const d=x.d||{}; const mf=()=>[(+d.machos?d.machos+' M':''),(+d.femeas?d.femeas+' F':''),(d.qtd&&!d.machos&&!d.femeas?d.qtd+(d.sexo==='F'?' F':' M'):'')].filter(Boolean).join(' '); switch(x.tipo){
   case 'trato': return d.pasto+' · '+fmt(d.kg)+' kg';
-  case 'gado': return (d.mov==='saida'?'Saída ':'Entrada ')+d.qtd+(d.sexo==='F'?' F':' M')+' · '+d.fazenda+(d.obs?' · '+d.obs:'');
-  case 'transf': return d.qtd+(d.sexo==='F'?' F':' M')+' · '+d.de+' → '+d.para;
-  case 'morte': return d.qtd+(d.sexo==='F'?' F':' M')+' · '+(d.pasto||'')+' '+(d.causa||'');
+  case 'gado': return (d.mov==='saida'?'Saída ':'Entrada ')+mf()+' · '+d.fazenda+(d.obs?' · '+d.obs:'');
+  case 'transf': return mf()+' · '+d.de+' → '+d.para;
+  case 'morte': return (d.qtd||1)+(d.sexo==='F'?' F':' M')+' · '+(d.pasto||'')+' '+(d.causa||'')+(d.foto?' 📷':'');
   case 'chuva': return d.mm+' mm';
-  case 'mudar': return 'Módulo '+d.modulo+' → '+d.pasto;
-  case 'lote': return d.modo+' · Módulo '+d.modulo+' · '+d.categoria+' '+(d.cabecas||'');
+  case 'manejo': return 'Módulo '+d.modulo;
   case 'contagem': return d.local+' · '+d.cabecas+' cab';
   case 'bebedouro': return d.local;
   case 'cocho': return 'Módulo '+d.modulo+' · '+d.sacos+' sacos';
   case 'maquina': return d.maquina+' · '+d.tipo;
   case 'maq_nova': return d.nome; } return ''; }
 TELAS.fila = () => {
+  const meus = dados && dados.meus ? dados.meus : [];
   app.innerHTML = `<h2>Fila (${fila.length})</h2>
-  <div class="card">${fila.length? '<table>'+fila.map((x,i)=>`<tr><td>${br(x.d.data)||''}<br><span class="muted">${esc(x.user)}</span></td><td><b>${NOMES[x.tipo]||x.tipo}</b><br>${esc(resumo(x))}${x.erro?`<br><span class="tag t-vm">${esc(x.erro)}</span>`:''}</td><td><button class="x" onclick="tiraFila(${i})">×</button></td></tr>`).join('')+'</table>' : '<span class="muted">Nada pendente. Tudo já foi enviado.</span>'}</div>
-  ${fila.length?`<button class="btn prim full" onclick="sincronizar()">⟳ Enviar agora</button>`:''}`;
+  <div class="card">${fila.length? '<table>'+fila.map((x,i)=>`<tr><td>${br(x.d.data)||''}<br><span class="muted">${esc(x.user)}</span></td><td><b>${NOMES[x.tipo]||x.tipo}</b><br>${esc(resumo(x))}${x.erro?`<br><span class="tag t-vm" style="white-space:normal">${esc(x.erro)}</span>`:''}</td><td><button class="x" onclick="tiraFila(${i})">×</button></td></tr>`).join('')+'</table>' : '<span class="muted">Nada pendente. Tudo já foi enviado.</span>'}</div>
+  ${fila.length?`<button class="btn prim full" onclick="sincronizar()">⟳ Enviar agora</button>`:''}
+  <div class="sec">Enviados nos últimos 7 dias</div>
+  <div class="card">${meus.length? '<table>'+meus.map((x,i)=>`<tr><td>${br(x.d.data)||br(x.quando.slice(0,10))}<br><span class="muted">${esc(x.user)}</span></td><td><b>${NOMES[x.tipo]||x.tipo}</b><br>${esc(resumo(x))}${x.sit!=='OK'?`<br><span class="tag t-cz" style="white-space:normal">${esc(x.sit)}</span>`:''}</td><td style="white-space:nowrap">${x.sit==='OK'&&x.pode?`<button class="btn peq" onclick="corrigir(${i})">Corrigir</button> <button class="btn peq vm" onclick="apagarEnv(${i})">Apagar</button>`:''}</td></tr>`).join('')+'</table>' : '<span class="muted">Nada nos últimos 7 dias (ou ainda não sincronizou).</span>'}
+  <div class="status">Corrigir e apagar mexem direto na planilha, por isso precisam de internet.</div></div>`;
 };
-function tiraFila(i){ if(!confirm('Apagar este lançamento da fila? Ele não vai para a planilha.')) return; fila.splice(i,1); LS.set('fila',fila); ir('fila'); }
+function tiraFila(i){ if(!confirm('Apagar este lançamento da fila? Ele não vai para a planilha.')) return; fila.splice(i,1); LS.set('fila',fila); toast('Tirado da fila'); ir('fila'); if(navigator.onLine) sincronizar(true); }
+async function apagarEnv(i){
+  const x = dados.meus[i]; if(!navigator.onLine) return toast('Precisa de internet');
+  if(!confirm('Apagar da planilha?\n'+(NOMES[x.tipo]||x.tipo)+': '+resumo(x))) return;
+  try{ await api({a:'apagar', id:x.id}); toast('Apagado ✔'); await sincronizar(true); ir('fila'); }catch(e){ toast(e.message, 5000); }
+}
+const CAMPOS = {data:'Data',machos:'Machos',femeas:'Fêmeas',qtd:'Quantidade',kg:'Kg',mm:'mm',pasto:'Pasto',obs:'Obs.',local:'Local',cabecas:'Cabeças',sacos:'Sacos',produto:'Produto',horimetro:'Horímetro',litros:'Litros',desc:'Descrição',brinco:'Brinco',causa:'Causa',tratador:'Tratador',fazenda:'Fazenda'};
+function corrigir(i){
+  const x = dados.meus[i]; if(!navigator.onLine) return toast('Precisa de internet');
+  const ks = Object.keys(x.d).filter(k=>CAMPOS[k]);
+  app.innerHTML = `<h2>Corrigir — ${NOMES[x.tipo]||x.tipo}</h2><div class="card">${ks.map(k=>`<label>${CAMPOS[k]}</label><input id="c_${k}" ${k==='data'?'type="date"':(typeof x.d[k]==='number'||/^\d+([.,]\d+)?$/.test(x.d[k])?'type="number" inputmode="decimal"':'')} value="${esc(x.d[k])}">`).join('')}
+    <div class="status">A linha antiga é apagada da planilha e a correta é gravada no lugar.</div>
+    <div style="height:14px"></div><button class="btn prim full" onclick="enviaCorrecao(${i})">Salvar correção</button></div>`;
+}
+async function enviaCorrecao(i){
+  const x = dados.meus[i], d = Object.assign({}, x.d);
+  Object.keys(d).forEach(k=>{ const e=document.getElementById('c_'+k); if(e) d[k] = e.type==='number' ? (+e.value||0) : e.value; });
+  try{ await api({a:'corrigir', id:x.id, d}); toast('Corrigido ✔'); await sincronizar(true); ir('fila'); }catch(e){ toast(e.message, 5000); }
+}
 
-/* ---- Painel ---- */
-TELAS.painel = () => {
+/* =================== REGRAS (Hugo) =================== */
+TELAS.regras = () => {
+  if(!dados || !dados.regras){ app.innerHTML = semDados(); return; }
+  const R = dados.regras;
+  app.innerHTML = `<h2>Regras dos avisos</h2><div class="card">${Object.keys(R).map(k=>`<div style="display:grid;grid-template-columns:30px 1fr 80px;gap:8px;align-items:center;padding:8px 0;border-bottom:1px solid #eee"><input type="checkbox" id="ra_${k}" ${R[k].ativa?'checked':''}><span>${esc(R[k].desc)}</span><input type="number" inputmode="numeric" id="rl_${k}" value="${R[k].limite}"></div>`).join('')}
+  <div class="status">Os avisos vão para o grupo do Telegram às 6h, 12h e 18h e aparecem na tela inicial.</div>
+  <div style="height:14px"></div><button class="btn prim full" onclick="salvaRegras()">Salvar regras</button></div>`;
+};
+function salvaRegras(){ const r={}; Object.keys(dados.regras).forEach(k=>{ r[k]={limite:+val('rl_'+k)||0, ativa:document.getElementById('ra_'+k).checked}; }); lancar('regras',{regras:r}); salvo(1); }
+
+/* =================== PAINEL GERAL + DETALHADO =================== */
+let abaPainel='geral';
+TELAS.painel = (aba) => {
   if(!dados){ app.innerHTML=semDados(); return; }
-  const g=dados.gado.saldo;
-  const gado = Object.keys(g).map(f=>`<tr><td>${esc(f)}</td><td class="n">${fmt(g[f].m)}</td><td class="n">${fmt(g[f].f)}</td><td class="n"><b>${fmt(g[f].m+g[f].f)}</b></td></tr>`).join('');
-  const tot = Object.values(g).reduce((s,x)=>s+x.m+x.f,0);
-  const c=dados.chuva, dsc = c.recentes[0]?diasDesde(c.recentes[0].data):null;
-  const semi = dados.semi.pastos.filter(p=>p.bois).map(p=>{ const u=dados.semi.ultTrato[p.pasto]; const d=u?diasDesde(u.data):null; return {p,u,d}; }).sort((a,b)=>(b.d==null?999:b.d)-(a.d==null?999:a.d));
-  const mods = dados.modulos.filter(m=>m.atual).map(m=>{ const d=diasDesde(m.atual.entrada); const plan=(m.pastos.find(p=>norm(p.nome)===norm(m.atual.pasto))||{}).dias; return {m,d,plan}; });
-  const pend = mods.filter(x=>x.plan && x.d>=x.plan).length;
-  app.innerHTML = `<h2>Painel</h2>
-  <div class="card"><div class="kpi"><div><b>${fmt(tot)}</b><span>cabeças</span></div><div><b>${dsc==null?'—':dsc}</b><span>dias sem chuva</span></div><div><b>${pend}</b><span>módulos p/ mudar</span></div></div></div>
-  <div class="card"><h3>Gado</h3><table><tr><th>Fazenda</th><th class="n">Machos</th><th class="n">Fêmeas</th><th class="n">Total</th></tr>${gado}</table></div>
-  <div class="card"><h3>Chuva</h3>Última: <b>${c.recentes[0]?br(c.recentes[0].data)+' ('+fmt(c.recentes[0].mm)+' mm)':'—'}</b> · mês ${fmt(c.totalMes)} mm · ano ${fmt(c.totalAno)} mm</div>
-  <div class="card"><h3>Rotacionado — dias no pasto</h3><table><tr><th>Mód.</th><th>Pasto</th><th class="n">Dias</th><th></th></tr>
-    ${mods.map(x=>`<tr><td>${x.m.n}</td><td>${esc(x.m.atual.pasto)}</td><td class="n">${x.d}${x.plan?'/'+x.plan:''}</td><td>${tagDias(x.d,x.plan)}</td></tr>`).join('')}</table></div>
-  <div class="card"><h3>Semi-confinamento — último trato</h3><table><tr><th>Pasto</th><th class="n">Bois</th><th>Último</th><th class="n">Dias</th></tr>
-    ${semi.map(x=>`<tr><td>${esc(x.p.pasto)}</td><td class="n">${x.p.bois}</td><td>${x.u?br(x.u.data):'—'}</td><td class="n">${x.d==null?'—':`<span class="tag ${x.d>=3?'t-vm':x.d>=2?'t-am':'t-ok'}">${x.d}</span>`}</td></tr>`).join('')}</table></div>
-  <p class="muted">Dados de ${new Date(LS.get('dadosEm',dados.gerado)).toLocaleString('pt-BR')} + lançamentos da fila.</p>`;
+  if(aba) abaPainel=aba;
+  const L=[['geral','Geral'],['gado','Gado'],['trato','Trato'],['rot','Rotacionado'],['chuva','Chuva'],['beb','Bebedouro'],['cocho','Cocho/sal'],['maq','Máquinas']];
+  app.innerHTML = abas('abP',L,abaPainel,'') + '<div id="painelC"></div>';
+  document.querySelectorAll('#abP button').forEach((b,i)=>b.onclick=()=>ir('painel',L[i][0]));
+  const C = $('#painelC');
+  if(abaPainel==='geral') C.innerHTML = painelGeral();
+  else if(abaPainel==='gado'){ C.innerHTML='<div id="gadoC"></div>'; gadoResumoPainel(); }
+  else if(abaPainel==='trato') C.innerHTML = painelTrato();
+  else if(abaPainel==='rot') C.innerHTML = rotPainel() + '<div class="sec">Onde está cada lote</div>' + rotResumo(dados.rot.datas, dados.rot.lotes);
+  else if(abaPainel==='chuva') C.innerHTML = painelChuva();
+  else if(abaPainel==='beb') C.innerHTML = painelBeb() + `<div class="card"><h3>Últimas lavagens</h3><table>${(dados.bebHist||[]).slice(0,15).map(r=>`<tr><td>${br(r.data)}</td><td>${esc(r.local)}</td><td>${esc(r.user)}</td></tr>`).join('')}</table></div>`;
+  else if(abaPainel==='cocho') C.innerHTML = painelCocho() + `<div class="card"><h3>Últimos abastecimentos</h3><table>${(dados.cochoHist||[]).slice(0,15).map(r=>`<tr><td>${br(r.data)}</td><td>Mód. ${esc(r.modulo)}</td><td>${esc(r.produto)}</td><td class="n">${fmt(r.sacos)} sc</td></tr>`).join('')}</table></div>`;
+  else if(abaPainel==='maq') C.innerHTML = listaMaq(true);
 };
+function painelGeral(){
+  const sL=saldoGado('Lorenzetti'), sU=saldoGado('União'); const tot=sL.m+sL.f+sU.m+sU.f;
+  const c=dados.chuva.filter(x=>x[1]>0), ult=c[c.length-1];
+  let vencidos=0, noRot=0; modulos().forEach(m=>{ const x=calcModulo(m,dados.rot.datas,dados.rot.lotes); if(x.atrasado&&x.cab) vencidos++; noRot+=x.cab; });
+  const semi=dados.semi.pastos.reduce((s,p)=>s+p.bois,0);
+  const lim = dados.regras&&dados.regras.semi_sem_trato?dados.regras.semi_sem_trato.limite:2;
+  const semTrato=dados.semi.pastos.filter(p=>{ if(!p.bois) return false; const u=dados.semi.ultTrato[p.pasto]; return !u||diasDesde(u.data)>=lim; }).length;
+  const av = dados.avisos||[];
+  return `<div class="kpis">${kpi('Cabeças (Lorenzetti + União)',fmt(tot))}${kpi('Dias sem chuva',ult?diasEntre(ult[0],hojeISO()):'—')}
+    ${kpi('No semi-confinamento',fmt(semi))}${kpi('No rotacionado',fmt(noRot))}
+    ${kpi('Pastos sem trato',`<i style="color:${semTrato?'var(--vermelho)':'var(--ok)'}">${semTrato}</i>`)}${kpi('Módulos p/ mudar',`<i style="color:${vencidos?'var(--vermelho)':'var(--ok)'}">${vencidos}</i>`)}</div>
+  <div class="card" style="margin-top:12px"><h3>Gado por fazenda</h3><table><tr><th>Fazenda</th><th class="n">Machos</th><th class="n">Fêmeas</th><th class="n">Total</th></tr>
+    <tr><td>Lorenzetti</td><td class="n">${fmt(sL.m)}</td><td class="n">${fmt(sL.f)}</td><td class="n"><b>${fmt(sL.m+sL.f)}</b></td></tr>
+    <tr><td>União</td><td class="n">${fmt(sU.m)}</td><td class="n">${fmt(sU.f)}</td><td class="n"><b>${fmt(sU.m+sU.f)}</b></td></tr></table></div>
+  <div class="card"><h3>Avisos (${av.length})</h3>${av.map(a=>`<div style="padding:6px 0;border-bottom:1px solid #eee;color:var(--vermelho)">• ${esc(a.t)}</div>`).join('')||'<span class="muted">Nenhum aviso. 🟢</span>'}</div>
+  <p class="muted">Dados de ${new Date(LS.get('dadosEm',dados.gerado)).toLocaleString('pt-BR')}. Toque nas abas acima para ver cada área.</p>`;
+}
+function gadoResumoPainel(){
+  const C=$('#gadoC'); const s=saldoGado(filtroFaz);
+  C.innerHTML = seg('fFiltroP',[['Lorenzetti','Lorenzetti'],['União','União'],['As duas','As duas']],filtroFaz,'filtroPainelGado')
+   + `<div class="kpis k3" style="margin-top:10px">${kpi('Machos',fmt(s.m))}${kpi('Fêmeas',fmt(s.f))}${kpi('Total',fmt(s.m+s.f))}</div>
+   <div class="sec">Evolução do rebanho</div><div class="card">${graficoGado()}</div>
+   <div class="sec">Últimos lançamentos</div><div class="card">${tabelaGado(linhasGado(filtroFaz).slice(-15).reverse(), false)}</div>
+   ${dados.contagens.length?`<div class="sec">Últimas contagens</div><div class="card"><table>${dados.contagens.slice(0,10).map(r=>`<tr><td>${br(r.data)}</td><td>${esc(r.local)}</td><td class="n">${fmt(r.cab)}</td><td>${esc(r.user||'')}</td></tr>`).join('')}</table></div>`:''}`;
+}
+function filtroPainelGado(v){ filtroFaz=v; gadoResumoPainel(); }
 
-/* ---- Mapa ---- */
+/* =================== MAPA =================== */
 let MAPA=null, GEO=null;
 TELAS.mapa = async () => {
   app.innerHTML = `<div class="linha" style="justify-content:space-between;margin-bottom:8px"><h2 style="margin:0">Mapa</h2><button class="btn peq" onclick="baixarMapa()">Baixar mapa offline</button></div><div id="mapa"></div>
@@ -543,20 +787,20 @@ TELAS.mapa = async () => {
   MAPA = L.map('mapa',{zoomControl:true, attributionControl:false});
   L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:18}).addTo(MAPA);
   const semi = {}; (dados?dados.semi.pastos:[]).forEach(p=>semi[norm(p.pasto)]=p);
-  const atual = {}; (dados?dados.modulos:[]).forEach(m=>{ if(m.atual) atual[norm(m.atual.pasto)]=m; });
+  const atual = {}; if(dados) modulos().forEach(m=>{ const c=calcModulo(m,dados.rot.datas,dados.rot.lotes); if(c.pastoAtual && c.cab) atual[norm(c.pastoAtual.nome)]={m,c}; });
   const lay = L.geoJSON(GEO, {
     style: f => { const p=f.properties;
       if(p.k==='b') return {color:'#fff',weight:2,fill:false};
       if(p.k==='m') return {color:'#2f7d3a',weight:1,fillColor:'#1f5e2a',fillOpacity:.35};
-      const s=semi[norm(p.nome)], m=atual[norm(p.pl)];
+      const s=semi[norm(p.nome)], r=atual[norm(p.pl)];
       if(s && s.bois) return {color:'#fff',weight:1.5,fillColor:'#CF6B33',fillOpacity:.65};
-      if(m) return {color:'#fff',weight:1.5,fillColor:'#2E7D4F',fillOpacity:.7};
+      if(r) return {color:'#fff',weight:1.5,fillColor:'#2E7D4F',fillOpacity:.7};
       return {color:'#fff',weight:1,fillColor:'#cfd8cc',fillOpacity:.25}; },
     onEachFeature: (f,l) => { const p=f.properties; if(p.k!=='p') return;
-      const s=semi[norm(p.nome)], m=atual[norm(p.pl)];
+      const s=semi[norm(p.nome)], r=atual[norm(p.pl)];
       let h=`<b>Pasto ${esc(p.nome)}</b><br>${p.ha?esc(p.ha)+' ha':''}${p.rot?' · rotacionado módulo '+esc(p.rot):''}`;
       if(s){ const u=dados.semi.ultTrato[s.pasto]; h+=`<br>${s.bois} bois · ${s.peso} kg · entrada ${br(s.entrada)}<br>Último trato: ${u?br(u.data)+' ('+fmt(u.kg)+' kg)':'—'}`; }
-      if(m){ h+=`<br><b>Gado aqui desde ${br(m.atual.entrada)}</b> (${diasDesde(m.atual.entrada)} dias)<br>${m.lotes.map(l=>l.cabecas+' '+esc(l.categoria)).join(', ')}`; }
+      if(r){ h+=`<br><b>Gado aqui desde ${br(r.c.pastoAtual.entrada)}</b> (sai ${br(r.c.pastoAtual.saida)})<br>${(dados.rot.lotes[String(r.m.n)]||[]).map(x=>x.cabecas+' '+esc(x.categoria)).join(', ')}`; }
       l.bindPopup(h); l.bindTooltip(p.nome,{permanent:true,direction:'center',className:'rot'}); }
   }).addTo(MAPA);
   MAPA.fitBounds(lay.getBounds());
@@ -582,6 +826,7 @@ function render(){ if(tela==='home') TELAS.home(); }
 window.addEventListener('online', ()=>{ render(); sincronizar(true); });
 window.addEventListener('offline', render);
 if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
+try{ localStorage.removeItem('fl_dados'); }catch(e){}
 if(!user) ir('login'); else { ir('home'); sincronizar(true); }
 </script>
 </body>
