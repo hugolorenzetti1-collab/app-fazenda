@@ -18,6 +18,7 @@ var USERS = {
 };
 
 var TZ = 'America/Cuiaba';
+var LER_TZ = TZ; // trocado para o fuso de cada planilha na leitura
 
 /* ---------------- entrada ---------------- */
 
@@ -247,6 +248,7 @@ function dados_() {
 
   // Gado: saldo por fazenda
   var gl = SpreadsheetApp.openById(IDS.GADO);
+  LER_TZ = gl.getSpreadsheetTimeZone();
   var lan = gl.getSheetByName('Lançamentos').getDataRange().getValues();
   var saldo = {}, ult = [];
   for (var i = 1; i < lan.length; i++) {
@@ -267,6 +269,7 @@ function dados_() {
 
   // Semi-confinamento (giro25): pastos e último trato
   var giro = SpreadsheetApp.openById(IDS.GIRO);
+  LER_TZ = giro.getSpreadsheetTimeZone();
   var gv = giro.getSheetByName('GIRO 25').getRange('A4:G60').getValues();
   var semi = [];
   gv.forEach(function (r) {
@@ -287,6 +290,7 @@ function dados_() {
 
   // Rotacionado (MANEJO MS)
   var mj = SpreadsheetApp.openById(IDS.MANEJO);
+  LER_TZ = mj.getSpreadsheetTimeZone();
   out.modulos = modulos_(mj.getSheetByName('Pastos').getDataRange().getDisplayValues());
   var ad = mj.getSheetByName('AppDatas').getDataRange().getDisplayValues();
   var atual = {};
@@ -307,7 +311,9 @@ function dados_() {
   out.ultCocho = ultCocho;
 
   // Chuva
-  var ch = SpreadsheetApp.openById(IDS.CHUVA).getSheetByName('LANÇAMENTOS');
+  var chs = SpreadsheetApp.openById(IDS.CHUVA);
+  LER_TZ = chs.getSpreadsheetTimeZone();
+  var ch = chs.getSheetByName('LANÇAMENTOS');
   var cn = ultimaLinha_(ch, 1);
   var cv = cn > 1 ? ch.getRange(2, 1, cn - 1, 2).getValues() : [];
   var chuvas = cv.filter(function (r) { return r[0] instanceof Date; }).map(function (r) { return { data: iso_(r[0]), mm: num_(r[1]) }; });
@@ -320,6 +326,7 @@ function dados_() {
   };
 
   // Bebedouros, contagens, máquinas
+  LER_TZ = gl.getSpreadsheetTimeZone();
   out.bebedouros = ultimoPor_(gl.getSheetByName('BEBEDOUROS'), 1, 0, 4);
   out.contagens = ultimas_(gl.getSheetByName('CONTAGEM'), 6, 15).map(function (r) { return { data: iso_(r[0]), faz: r[1], local: r[2], cab: num_(r[3]), obs: r[4], user: r[5] }; });
   var mq = gl.getSheetByName('MAQUINAS');
@@ -397,7 +404,7 @@ function data_(s) {
 }
 function isoData_(s) { return Utilities.formatDate(data_(s), TZ, 'yyyy-MM-dd'); }
 function iso_(d) {
-  if (d instanceof Date) return Utilities.formatDate(d, TZ, 'yyyy-MM-dd');
+  if (d instanceof Date) return Utilities.formatDate(d, LER_TZ, 'yyyy-MM-dd'); // fuso da planilha que está sendo lida
   var m = /^(\d{2})\/(\d{2})\/(\d{4})/.exec(String(d || ''));
   return m ? m[3] + '-' + m[2] + '-' + m[1] : String(d || '');
 }
