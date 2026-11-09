@@ -103,7 +103,7 @@ td.n,th.n{text-align:right}
 <script>
 /* ======= configuração ======= */
 const API = 'https://script.google.com/macros/s/AKfycbwY3RA38GPBgCJ4UZjjwriIR1XyGTsPuZ1mBAuUJ_TNuZuF4nQg7P_q68GT8okeYCZd/exec';
-const VERSAO = '2.1';
+const VERSAO = '2.2';
 
 /* ======= estado ======= */
 const LS = {
@@ -150,7 +150,7 @@ const IC = {
 
 /* ======= navegação ======= */
 let tela = 'home';
-function ir(t, arg){ tela=t; $('#barra').innerHTML=''; $('#btVoltar').style.display = (t==='home'||t==='login')?'none':'block'; window.scrollTo(0,0); (TELAS[t]||TELAS.home)(arg); if(t!=='home') history.pushState({t},''); }
+function ir(t, arg){ if(user && user.ver && !['home','login','painel','mapa'].includes(t)){ t='painel'; arg=undefined; } tela=t; $('#barra').innerHTML=''; $('#btVoltar').style.display = (t==='home'||t==='login')?'none':'block'; window.scrollTo(0,0); (TELAS[t]||TELAS.home)(arg); if(t!=='home') history.pushState({t},''); }
 window.addEventListener('popstate', ()=>{ if(tela!=='home' && tela!=='login') ir('home'); });
 
 /* ======= API ======= */
@@ -194,6 +194,7 @@ function salvaDados(){ if(!LS.set('dados2', dados)) toast('Celular sem espaço p
 const APLICA = {};
 function aplicaFila(){ if(!dados) return; fila.forEach(x => { try{ APLICA[x.tipo] && APLICA[x.tipo](dados, x.d); }catch(e){} }); }
 function lancar(tipo, d){
+  if(user && user.ver){ toast('Usuário só de consulta'); return null; }
   const it = {id: uid(), tipo, d, ts: new Date().toISOString(), user: user.nome};
   fila.push(it);
   if(!LS.set('fila', fila)){ fila.pop(); if(d.foto){ delete d.foto; fila.push(it); LS.set('fila', fila); toast('Sem espaço para a foto — lançamento salvo sem foto', 4500); } else { toast('Celular sem espaço!', 4000); return null; } }
@@ -271,7 +272,7 @@ const TELAS = {};
 TELAS.login = () => {
   app.innerHTML = `<div class="card" style="margin-top:30px;text-align:center">
     <img src="icon-512.png" style="width:120px;height:120px;border-radius:50%"><h2>App da Fazenda</h2>
-    <label style="text-align:left">Usuário</label><select id="lU"><option value="hugo">Hugo</option><option value="gustavo">Gustavo</option></select>
+    <label style="text-align:left">Usuário</label><select id="lU"><option value="hugo">Hugo</option><option value="gustavo">Gustavo</option><option value="rui">Rui</option></select>
     <label style="text-align:left">PIN</label><input id="lP" type="password" inputmode="numeric" maxlength="8" autocomplete="off">
     <div style="height:14px"></div><button class="btn prim full" onclick="entrar()">Entrar</button>
     <div class="status">Precisa de internet só no primeiro acesso.</div></div>`;
@@ -280,14 +281,15 @@ async function entrar(){
   const u=val('lU'), p=val('lP');
   if(!p) return toast('Digite o PIN');
   try{
-    user = {u, p, nome: u==='hugo'?'Hugo':'Gustavo'};
+    user = {u, p, nome: {hugo:'Hugo',gustavo:'Gustavo',rui:'Rui'}[u]};
     const j = await api({a:'login'});
-    user.nome = j.nome; user.admin = !!j.admin; LS.set('user', user);
+    user.nome = j.nome; user.admin = !!j.admin; user.ver = !!j.ver; LS.set('user', user);
     toast('Bem-vindo, '+j.nome); ir('home'); sincronizar(true);
   }catch(e){ user=null; toast(navigator.onLine ? e.message : 'Sem internet para o primeiro acesso', 4000); }
 }
 
 TELAS.home = () => {
+  if(user.ver) return homeVer();
   const em = LS.get('dadosEm', null);
   const pend = fila.length, comErro = fila.filter(x=>x.erro).length;
   const av = dados && dados.avisos ? dados.avisos : [];
@@ -317,6 +319,23 @@ TELAS.home = () => {
   ${user.admin?`<div style="text-align:center;margin-top:14px"><button class="btn peq" onclick="ir('regras')">⚙ Regras dos avisos</button></div>`:''}
   <p class="muted" style="text-align:center;margin-top:18px">v${VERSAO}</p>`;
 };
+function homeVer(){
+  const em = LS.get('dadosEm', null);
+  const av = dados && dados.avisos ? dados.avisos : [];
+  app.innerHTML = `${semDados()}
+  <div class="card"><div class="linha" style="justify-content:space-between"><div><b>${esc(user.nome)}</b> <span class="muted">· só consulta</span></div>
+    <div class="muted">${em? 'atualizado '+new Date(em).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}) : 'sem dados'}</div></div>
+    <div class="linha" style="margin-top:10px"><button class="btn prim" onclick="sincronizar()" ${enviando?'disabled':''}>${enviando?'Atualizando…':'⟳ Atualizar'}</button><button class="btn" onclick="sair()">Trocar usuário</button></div></div>
+  ${av.length?`<div class="avisos" onclick="ir('painel')"><b>⚠ ${av.length} aviso(s)</b>${av.slice(0,4).map(a=>`<div>• ${esc(a.t)}</div>`).join('')}${av.length>4?`<div>… e mais ${av.length-4}</div>`:''}</div>`:''}
+  <div class="grade">
+    <div class="tile" onclick="ir('painel')">${IC.painel}<span>Painel</span></div>
+    <div class="tile" onclick="ir('mapa')">${IC.mapa}<span>Mapa</span></div>
+    <div class="tile" onclick="ir('painel','gado')">${IC.gado}<span>Gado</span></div>
+    <div class="tile" onclick="ir('painel','trato')">${IC.trato}<span>Trato</span></div>
+    <div class="tile" onclick="ir('painel','rot')">${IC.rot}<span>Rotacionado</span></div>
+    <div class="tile" onclick="ir('painel','chuva')">${IC.chuva}<span>Chuva</span></div>
+  </div><p class="muted" style="text-align:center;margin-top:18px">v${VERSAO}</p>`;
+}
 function sair(){ if(fila.length && !confirm('Ainda tem '+fila.length+' lançamento(s) na fila. Eles continuam salvos neste celular. Trocar de usuário?')) return; user=null; LS.set('user',null); ir('login'); }
 
 /* =================== TRATO (igual ao app antigo) =================== */
@@ -813,7 +832,7 @@ TELAS.painel = (aba) => {
   const C = $('#painelC');
   if(abaPainel==='geral') C.innerHTML = painelGeral();
   else if(abaPainel==='gado'){ C.innerHTML='<div id="gadoC"></div>'; gadoResumoPainel(); }
-  else if(abaPainel==='trato') C.innerHTML = painelTrato();
+  else if(abaPainel==='trato') C.innerHTML = painelTrato() + '<div class="sec">Giro 25</div>' + tabelaGiro();
   else if(abaPainel==='rot') C.innerHTML = rotPainel() + '<div class="sec">Onde está cada lote</div>' + rotResumo(dados.rot.datas, dados.rot.lotes);
   else if(abaPainel==='chuva') C.innerHTML = painelChuva();
   else if(abaPainel==='beb') C.innerHTML = painelBeb() + `<div class="card"><h3>Últimas lavagens</h3><table>${(dados.bebHist||[]).slice(0,15).map(r=>`<tr><td>${br(r.data)}</td><td>${esc(r.local)}</td><td>${esc(r.user)}</td></tr>`).join('')}</table></div>`;
