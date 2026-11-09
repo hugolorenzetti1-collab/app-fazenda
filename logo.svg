@@ -1,0 +1,77 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1000" width="1000" height="1000">
+  <defs>
+    <clipPath id="scene"><circle cx="500" cy="500" r="340"/></clipPath>
+  </defs>
+  <circle cx="500" cy="500" r="492" fill="none" stroke="#CF6B33" stroke-width="10"/>
+  <circle cx="500" cy="500" r="478" fill="#1F3D2B"/>
+  <circle cx="500" cy="500" r="352" fill="none" stroke="#CF6B33" stroke-width="8"/>
+  <circle cx="500" cy="500" r="340" fill="#F2C9A8"/>
+  <g clip-path="url(#scene)">
+    <circle cx="510" cy="430" r="170" fill="#D97D4A" opacity="0.35"/>
+    <circle cx="510" cy="430" r="125" fill="#E09055" opacity="0.55"/>
+    <path d="M 150,614 C 210,596 258,576 320,535 C 348,516 368,502 382,488 C 392,470 396,440 402,410 C 406,388 416,372 434,362 C 458,352 490,348 520,348 C 552,348 584,352 608,360 C 626,366 638,376 646,392 C 656,414 664,442 674,468 C 682,490 692,510 704,524 C 714,536 726,545 742,548 C 750,540 762,536 772,540 C 784,546 792,556 800,568 C 812,582 826,598 842,614 Z" fill="#1F3D2B"/>
+    <path d="M 120,640 Q 300,600 500,612 Q 700,622 880,600 L 880,880 L 120,880 Z" fill="#4E7C52"/>
+    <path d="M 120,700 Q 350,672 560,684 Q 740,692 880,672 L 880,880 L 120,880 Z" fill="#3E6B47"/>
+    <g stroke="#5C4326" stroke-width="7" stroke-linecap="round">
+      <line x1="255" y1="668" x2="255" y2="734"/>
+      <line x1="345" y1="676" x2="345" y2="744"/>
+      <line x1="255" y1="684" x2="345" y2="692"/>
+      <line x1="255" y1="708" x2="345" y2="718"/>
+    </g>
+    <g fill="#1F3D2B">
+      <g transform="translate(590,692) scale(1.15)">
+        <ellipse cx="24" cy="10" rx="21" ry="11"/>
+        <path d="M 8,3 C 4,10 1,18 0,27 L 9,28 C 11,20 14,12 18,8 Z"/>
+        <circle cx="4" cy="28" r="5.5"/>
+        <rect x="9" y="16" width="5" height="26" rx="2"/>
+        <rect x="19" y="18" width="5" height="24" rx="2"/>
+        <rect x="32" y="18" width="5" height="24" rx="2"/>
+        <rect x="39" y="16" width="5" height="26" rx="2"/>
+        <path d="M 44,5 C 48,13 48,23 45,31 L 42,29 C 45,22 45,13 41,7 Z"/>
+      </g>
+      <g transform="translate(692,678) scale(0.8)">
+        <ellipse cx="24" cy="10" rx="21" ry="11"/>
+        <path d="M 8,3 C 4,10 1,18 0,27 L 9,28 C 11,20 14,12 18,8 Z"/>
+        <circle cx="4" cy="28" r="5.5"/>
+        <rect x="9" y="16" width="5" height="26" rx="2"/>
+        <rect x="19" y="18" width="5" height="24" rx="2"/>
+        <rect x="32" y="18" width="5" height="24" rx="2"/>
+        <rect x="39" y="16" width="5" height="26" rx="2"/>
+        <path d="M 44,5 C 48,13 48,23 45,31 L 42,29 C 45,22 45,13 41,7 Z"/>
+      </g>
+    </g>
+  </g>
+  <g font-family="DejaVu Serif, Georgia, serif" font-weight="bold" fill="#CF6B33" text-anchor="middle" font-size="68">
+  <text x="121.5" y="376.8" transform="rotate(-72.0 121.5 376.8)">F</text>
+  <text x="143.7" y="322.7" transform="rotate(-63.5 143.7 322.7)">A</text>
+  <text x="173.9" y="271.8" transform="rotate(-55.0 173.9 271.8)">Z</text>
+  <text x="211.0" y="226.4" transform="rotate(-46.6 211.0 226.4)">E</text>
+  <text x="259.3" y="183.0" transform="rotate(-37.2 259.3 183.0)">N</text>
+  <text x="317.2" y="146.5" transform="rotate(-27.3 317.2 146.5)">D</text>
+  <text x="376.1" y="121.8" transform="rotate(-18.1 376.1 121.8)">A</text>
+  <text x="464.0" y="103.6" transform="rotate(-5.2 464.0 103.6)">L</text>
+  <text x="525.4" y="102.8" transform="rotate(3.7 525.4 102.8)">O</text>
+  <text x="590.5" y="112.4" transform="rotate(13.1 590.5 112.4)">R</text>
+  <text x="649.7" y="131.2" transform="rotate(22.1 649.7 131.2)">E</text>
+  <text x="707.7" y="160.5" transform="rotate(31.5 707.7 160.5)">N</text>
+  <text x="759.3" y="198.0" transform="rotate(40.7 759.3 198.0)">Z</text>
+  <text x="800.9" y="239.4" transform="rotate(49.1 800.9 239.4)">E</text>
+  <text x="836.2" y="286.9" transform="rotate(57.6 836.2 286.9)">T</text>
+  <text x="863.8" y="338.6" transform="rotate(66.1 863.8 338.6)">T</text>
+  <text x="880.9" y="384.7" transform="rotate(73.2 880.9 384.7)">I</text>
+  </g>
+  <g font-family="DejaVu Serif, Georgia, serif" font-weight="bold" fill="#CF6B33" text-anchor="middle" font-size="48">
+  <text x="328.8" y="911.8" transform="rotate(22.6 328.8 911.8)">P</text>
+  <text x="376.2" y="928.5" transform="rotate(16.1 376.2 928.5)">E</text>
+  <text x="426.3" y="939.9" transform="rotate(9.5 426.3 939.9)">C</text>
+  <text x="480.0" y="945.6" transform="rotate(2.6 480.0 945.6)">U</text>
+  <text x="533.5" y="944.7" transform="rotate(-4.3 533.5 944.7)">Á</text>
+  <text x="585.6" y="937.7" transform="rotate(-11.1 585.6 937.7)">R</text>
+  <text x="629.4" y="926.8" transform="rotate(-16.9 629.4 926.8)">I</text>
+  <text x="670.7" y="912.0" transform="rotate(-22.5 670.7 912.0)">A</text>
+  </g>
+  <g fill="#CF6B33">
+    <path d="M 94,490 l 10,-26 l 10,26 l 26,10 l -26,10 l -10,26 l -10,-26 l -26,-10 Z"/>
+    <path d="M 886,490 l 10,-26 l 10,26 l 26,10 l -26,10 l -10,26 l -10,-26 l -26,-10 Z"/>
+  </g>
+</svg>

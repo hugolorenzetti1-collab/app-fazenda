@@ -1,0 +1,588 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Fazenda Lorenzetti</title>
+<meta name="theme-color" content="#1F3D2B">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<style>
+:root{--verde:#1F3D2B;--verde2:#2E5A3F;--laranja:#CF6B33;--fundo:#F4F2EC;--card:#fff;--txt:#1d241f;--cinza:#6b7268;--borda:#d9d6cc;--vermelho:#B3261E;--amarelo:#C98A00;--ok:#2E7D4F}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--fundo);color:var(--txt);font:16px/1.35 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+header{position:sticky;top:0;z-index:1000;background:var(--verde);color:#fff;display:flex;align-items:center;gap:10px;padding:10px 16px;padding-top:calc(10px + env(safe-area-inset-top));border-bottom:3px solid var(--laranja)}
+header .tit{font-weight:800;letter-spacing:.08em;font-size:15px;flex:1}
+header .tit b{color:var(--laranja)}
+header img{width:40px;height:40px;border-radius:50%}
+header .voltar{background:none;border:0;color:#fff;font-size:26px;padding:0 6px 0 0;cursor:pointer;display:none}
+main{padding:14px 16px 90px;max-width:640px;margin:0 auto}
+.card{background:var(--card);border:1px solid var(--borda);border-radius:12px;padding:14px;margin-bottom:12px}
+.linha{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.btn{border:2px solid var(--verde);background:#fff;color:var(--verde);border-radius:10px;padding:11px 16px;font-size:16px;font-weight:600;cursor:pointer}
+.btn.prim{background:var(--verde);color:#fff}
+.btn.lar{background:var(--laranja);border-color:var(--laranja);color:#fff}
+.btn.peq{padding:6px 10px;font-size:14px}
+.btn.full{width:100%}
+.btn:disabled{opacity:.5}
+.grade{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.tile{border:2px solid var(--verde);border-radius:14px;background:#fff;min-height:104px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;font-weight:700;font-size:16px;color:var(--txt);cursor:pointer;padding:10px;text-align:center}
+.tile svg{width:30px;height:30px;stroke:var(--verde);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.tile:active{background:#eef3ee}
+label{display:block;font-size:13px;color:var(--cinza);margin:10px 0 4px}
+input,select,textarea{width:100%;font-size:17px;padding:11px 12px;border:1px solid var(--borda);border-radius:10px;background:#fff;color:var(--txt)}
+textarea{min-height:64px}
+.seg{display:flex;border:2px solid var(--verde);border-radius:10px;overflow:hidden}
+.seg button{flex:1;border:0;background:#fff;padding:10px 6px;font-size:15px;font-weight:600;color:var(--verde);cursor:pointer}
+.seg button.on{background:var(--verde);color:#fff}
+h2{font-size:19px;margin:4px 0 12px}
+h3{font-size:15px;margin:0 0 8px;color:var(--verde)}
+.muted{color:var(--cinza);font-size:14px}
+.tag{display:inline-block;border-radius:20px;padding:2px 9px;font-size:13px;font-weight:600}
+.t-ok{background:#E3F1E7;color:var(--ok)}.t-am{background:#FBF0D3;color:#8a5d00}.t-vm{background:#F9E1DF;color:var(--vermelho)}.t-cz{background:#ECECE8;color:#555}
+table{width:100%;border-collapse:collapse;font-size:14px}
+td,th{padding:7px 4px;border-bottom:1px solid #eee;text-align:left}
+th{color:var(--cinza);font-weight:600;font-size:12px}
+td.n,th.n{text-align:right}
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#222;color:#fff;padding:12px 18px;border-radius:10px;z-index:3000;max-width:90%;font-size:15px;display:none}
+#mapa{height:calc(100vh - 150px);border-radius:12px;border:1px solid var(--borda)}
+.leaflet-tooltip.rot{background:none;border:0;box-shadow:none;color:#fff;font-weight:700;text-shadow:0 0 3px #000,0 0 3px #000;font-size:11px;padding:0}
+.leaflet-tooltip.rot:before{display:none}
+.kpi{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.kpi div{background:#F7F6F1;border-radius:10px;padding:8px;text-align:center}
+.kpi b{display:block;font-size:20px}
+.kpi span{font-size:12px;color:var(--cinza)}
+.rowx{display:grid;grid-template-columns:1fr 110px 40px;gap:8px;align-items:center;margin-bottom:8px}
+.x{border:0;background:#eee;border-radius:8px;height:44px;font-size:20px;cursor:pointer}
+.status{font-size:13px;color:var(--cinza);margin-top:8px}
+.oculto{display:none!important}
+</style>
+</head>
+<body>
+<header>
+  <button class="voltar" id="btVoltar" onclick="ir('home')">‹</button>
+  <div class="tit">FAZENDA <b>LORENZETTI</b></div>
+  <img src="icon-192.png" alt="">
+</header>
+<main id="app"></main>
+<div class="toast" id="toast"></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script>
+/* ======= configuração ======= */
+const API = 'COLE_AQUI_A_URL_DO_APPS_SCRIPT';
+const VERSAO = '1.0';
+
+/* ======= estado ======= */
+const LS = {
+  get(k, d){ try{ const v = localStorage.getItem('fl_'+k); return v==null ? d : JSON.parse(v); }catch(e){ return d; } },
+  set(k, v){ try{ localStorage.setItem('fl_'+k, JSON.stringify(v)); }catch(e){} }
+};
+let user = LS.get('user', null);           // {u,p,nome}
+let fila = LS.get('fila', []);             // [{id,tipo,d,ts,user}]
+let dados = LS.get('dados', null);         // último pacote do servidor
+let fazenda = LS.get('fazenda', 'Lorenzetti');
+let enviando = false;
+
+const $ = s => document.querySelector(s);
+const app = $('#app');
+const esc = s => String(s==null?'':s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const hojeISO = () => { const d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); };
+const br = iso => { if(!iso) return '—'; const m=/^(\d{4})-(\d{2})-(\d{2})/.exec(iso); return m? m[3]+'/'+m[2]+'/'+m[1] : iso; };
+const diasDesde = iso => { if(!iso) return null; const m=/^(\d{4})-(\d{2})-(\d{2})/.exec(iso); if(!m) return null; const d=new Date(+m[1],m[2]-1,+m[3]); const h=new Date(); h.setHours(0,0,0,0); return Math.round((h-d)/864e5); };
+const fmt = n => (Number(n)||0).toLocaleString('pt-BR');
+const norm = s => String(s||'').toUpperCase().replace(/PASTO/g,'').replace(/[\s\-]/g,'').trim();
+const uid = () => Date.now().toString(36)+Math.random().toString(36).slice(2,8);
+function toast(msg, ms){ const t=$('#toast'); t.textContent=msg; t.style.display='block'; clearTimeout(t._h); t._h=setTimeout(()=>t.style.display='none', ms||2600); }
+
+/* ======= ícones ======= */
+const IC = {
+  trato:'<svg viewBox="0 0 24 24"><path d="M3 10h18l-2 9H5z"/><path d="M7 10V6h10v4"/></svg>',
+  manejo:'<svg viewBox="0 0 24 24"><path d="M4 8h13l-3-3M20 16H7l3 3"/></svg>',
+  gado:'<svg viewBox="0 0 24 24"><path d="M4 9c0-2 2-3 4-3h8c2 0 4 1 4 3v3c0 2-2 4-4 4H8c-2 0-4-2-4-4z"/><path d="M7 16v3M17 16v3M3 7l2 1M21 7l-2 1"/></svg>',
+  transf:'<svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/><path d="M5 6v12"/></svg>',
+  chuva:'<svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 0 1 18 0z"/><path d="M12 12v7a2 2 0 0 1-4 0"/></svg>',
+  morte:'<svg viewBox="0 0 24 24"><path d="M12 3v18M7 8h10"/></svg>',
+  contagem:'<svg viewBox="0 0 24 24"><path d="M9 4 7 20M17 4l-2 16M4 9h17M3 15h17"/></svg>',
+  lote:'<svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>',
+  bebedouro:'<svg viewBox="0 0 24 24"><path d="M12 3s6 7 6 11a6 6 0 0 1-12 0c0-4 6-11 6-11z"/></svg>',
+  cocho:'<svg viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="14" rx="1"/><path d="M12 5v14" /><path d="M4 12h8"/></svg>',
+  maquina:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="8"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2"/></svg>',
+  mapa:'<svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16"/><path d="M4 9h16M4 14h16M9 4v16M14 4v16"/></svg>',
+  painel:'<svg viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>'
+};
+
+/* ======= navegação ======= */
+let tela = 'home';
+function ir(t, arg){ tela=t; $('#btVoltar').style.display = (t==='home'||t==='login')?'none':'block'; window.scrollTo(0,0); (TELAS[t]||TELAS.home)(arg); if(t!=='home') history.pushState({t},'' ); }
+window.addEventListener('popstate', ()=>{ if(tela!=='home' && tela!=='login') ir('home'); });
+
+/* ======= API ======= */
+async function api(body){
+  const r = await fetch(API, {method:'POST', body: JSON.stringify(Object.assign({u:user&&user.u, p:user&&user.p}, body))});
+  const j = await r.json();
+  if(!j.ok) throw new Error(j.erro||'Erro no servidor');
+  return j;
+}
+
+async function sincronizar(silencioso){
+  if(enviando) return;
+  if(!navigator.onLine){ if(!silencioso) toast('Sem internet. Os lançamentos ficam na fila.'); return; }
+  enviando = true; render();
+  try{
+    const tentados = new Set(); let enviados = 0, comErro = 0;
+    while(true){
+      const lote = fila.filter(x => !tentados.has(x.id)).slice(0, 40);
+      if(!lote.length) break;
+      lote.forEach(x => tentados.add(x.id));
+      const j = await api({a:'sync', itens: lote});
+      const ok = new Set(j.gravados||[]);
+      const m = {}; (j.erros||[]).forEach(e => m[e.id] = e.erro);
+      fila = fila.filter(x => !ok.has(x.id));
+      fila.forEach(x => { if(m[x.id]) x.erro = m[x.id]; });
+      LS.set('fila', fila);
+      enviados += ok.size; comErro += Object.keys(m).length;
+    }
+    if(comErro) toast(comErro+' lançamento(s) deram erro. Veja a fila.', 4000);
+    else if(enviados && !silencioso) toast(enviados+' lançamento(s) enviados ✔');
+    const d = await api({a:'dados'});
+    dados = d.dados; LS.set('dados', dados); LS.set('dadosEm', new Date().toISOString());
+    if(!silencioso && !fila.length) toast('Dados atualizados ✔');
+  }catch(e){
+    if(!silencioso) toast('Não sincronizou: '+e.message, 4000);
+  }finally{ enviando=false; render(); }
+}
+
+function lancar(tipo, d, aplicaLocal){
+  const it = {id: uid(), tipo, d, ts: new Date().toISOString(), user: user.nome};
+  fila.push(it); LS.set('fila', fila);
+  if(aplicaLocal && dados){ try{ aplicaLocal(dados); LS.set('dados', dados); }catch(e){} }
+  return it;
+}
+function salvo(n){ toast((n>1? n+' lançamentos salvos':'Lançamento salvo')+' na fila'+(navigator.onLine?' — enviando…':' (sem internet)')); ir('home'); if(navigator.onLine) sincronizar(true); }
+
+/* ======= helpers de formulário ======= */
+const campoData = (id) => `<label>Data</label><input type="date" id="${id||'fData'}" value="${hojeISO()}">`;
+function seg(id, opcoes, ativo){ return `<div class="seg" id="${id}" data-v="${esc(ativo)}">`+opcoes.map(o=>`<button type="button" data-v="${esc(o[0])}" class="${o[0]===ativo?'on':''}" onclick="segClick(this)">${esc(o[1])}</button>`).join('')+'</div>'; }
+function segClick(b){ const p=b.parentNode; p.querySelectorAll('button').forEach(x=>x.classList.remove('on')); b.classList.add('on'); p.dataset.v=b.dataset.v; if(p.onchange) p.onchange(); }
+const val = id => { const e=document.getElementById(id); return e ? (e.dataset && e.dataset.v!==undefined && e.classList.contains('seg') ? e.dataset.v : e.value.trim()) : ''; };
+const fazendas = () => { const s = dados && dados.gado ? Object.keys(dados.gado.saldo) : []; ['Lorenzetti','União'].forEach(f=>{ if(!s.includes(f)) s.push(f); }); return s; };
+const pastosSemi = () => dados && dados.semi ? dados.semi.pastos.map(p=>p.pasto) : [];
+const modulos = () => dados && dados.modulos ? dados.modulos : [];
+function opts(lista, sel){ return lista.map(v=> Array.isArray(v) ? `<option value="${esc(v[0])}" ${v[0]==sel?'selected':''}>${esc(v[1])}</option>` : `<option ${v==sel?'selected':''}>${esc(v)}</option>`).join(''); }
+function locaisTodos(){
+  const l = pastosSemi().map(p=>'Pasto '+p);
+  modulos().forEach(m=>l.push('Módulo '+m.n));
+  l.push('Curral','Sede','Outro');
+  return l;
+}
+function semDados(){ return dados ? '' : `<div class="card t-am">Ainda não baixou os dados da fazenda. Conecte na internet e toque em <b>Sincronizar</b> uma vez.</div>`; }
+
+/* ======= telas ======= */
+const TELAS = {};
+
+TELAS.login = () => {
+  app.innerHTML = `<div class="card" style="margin-top:30px;text-align:center">
+    <img src="icon-512.png" style="width:120px;height:120px;border-radius:50%"><h2>App da Fazenda</h2>
+    <label style="text-align:left">Usuário</label><select id="lU"><option value="hugo">Hugo</option><option value="gustavo">Gustavo</option></select>
+    <label style="text-align:left">PIN</label><input id="lP" type="password" inputmode="numeric" maxlength="8" autocomplete="off">
+    <div style="height:14px"></div><button class="btn prim full" onclick="entrar()">Entrar</button>
+    <div class="status">Precisa de internet só no primeiro acesso.</div></div>`;
+};
+async function entrar(){
+  const u=val('lU'), p=val('lP');
+  if(!p) return toast('Digite o PIN');
+  try{
+    user = {u, p, nome: u==='hugo'?'Hugo':'Gustavo'};
+    const j = await api({a:'login'});
+    user.nome = j.nome; LS.set('user', user);
+    toast('Bem-vindo, '+j.nome); ir('home'); sincronizar(true);
+  }catch(e){ user=null; toast(navigator.onLine ? e.message : 'Sem internet para o primeiro acesso', 4000); }
+}
+
+TELAS.home = () => {
+  const em = LS.get('dadosEm', null);
+  const pend = fila.length, comErro = fila.filter(x=>x.erro).length;
+  const t = (k, nome, tela) => `<div class="tile" onclick="ir('${tela}')">${IC[k]}<span>${nome}</span></div>`;
+  app.innerHTML = `${semDados()}
+  <div class="card">
+    <div class="linha" style="justify-content:space-between"><div><b>${esc(user.nome)}</b> <span class="muted">· ${navigator.onLine?'<span style="color:var(--ok)">online</span>':'<span style="color:var(--vermelho)">offline</span>'}</span></div>
+    <div class="muted">${em? 'atualizado '+new Date(em).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}) : 'sem dados'}</div></div>
+    <div class="linha" style="margin-top:10px">
+      <button class="btn prim" onclick="sincronizar()" ${enviando?'disabled':''}>${enviando?'Sincronizando…':'⟳ Sincronizar'}</button>
+      <button class="btn" onclick="ir('fila')">Fila (${pend})${comErro?' ⚠':''}</button>
+      <button class="btn" onclick="sair()">Trocar usuário</button>
+    </div>
+  </div>
+  <label>Fazenda</label><select id="selFaz" onchange="fazenda=this.value;LS.set('fazenda',fazenda)">${opts(fazendas(), fazenda)}</select>
+  <div style="height:12px"></div>
+  <div class="grade">
+    ${t('trato','Trato','trato')}${t('manejo','Mudar de pasto','mudar')}
+    ${t('gado','Entrada / Saída','gado')}${t('transf','Transferência','transf')}
+    ${t('chuva','Chuva','chuva')}${t('morte','Morte','morte')}
+    ${t('contagem','Contagem','contagem')}${t('lote','Novo lote','lote')}
+    ${t('bebedouro','Bebedouro','bebedouro')}${t('cocho','Cocho / sal','cocho')}
+    ${t('maquina','Máquinas','maquinas')}${t('mapa','Mapa','mapa')}
+  </div>
+  <div style="height:12px"></div>
+  <div class="tile" style="min-height:64px;flex-direction:row" onclick="ir('painel')">${IC.painel}<span>Painel</span></div>
+  <p class="muted" style="text-align:center;margin-top:18px">v${VERSAO}</p>`;
+};
+function sair(){ if(fila.length && !confirm('Ainda tem '+fila.length+' lançamento(s) na fila. Eles continuam salvos neste celular. Trocar de usuário?')) return; user=null; LS.set('user',null); ir('login'); }
+
+/* ---- Trato ---- */
+TELAS.trato = () => {
+  const ps = pastosSemi();
+  app.innerHTML = `${semDados()}<h2>Trato</h2><div class="card">${campoData()}
+    <label>Pasto e kg (pode lançar vários de uma vez)</label>
+    <datalist id="dlSemi">${ps.map(p=>`<option value="${esc(p)}">`).join('')}</datalist>
+    <div id="linhasTrato"></div>
+    <button class="btn peq" onclick="addLinhaTrato()">+ outro pasto</button>
+    <label>Obs.</label><input id="fObs">
+    <div style="height:14px"></div><button class="btn prim full" onclick="salvaTrato()">Salvar</button></div>
+    ${ultimosTratos()}`;
+  addLinhaTrato();
+};
+function addLinhaTrato(){
+  const d=document.createElement('div'); d.className='rowx';
+  d.innerHTML=`<input list="dlSemi" placeholder="Pasto" class="tp" autocapitalize="characters"><input type="number" inputmode="decimal" placeholder="kg" class="tk"><button class="x" onclick="this.parentNode.remove()">×</button>`;
+  $('#linhasTrato').appendChild(d);
+}
+function salvaTrato(){
+  const data=val('fData'), obs=val('fObs'); let n=0;
+  document.querySelectorAll('#linhasTrato .rowx').forEach(r=>{
+    const pasto=r.querySelector('.tp').value.trim().toUpperCase(), kg=r.querySelector('.tk').value;
+    if(!pasto||!kg) return;
+    lancar('trato',{data,pasto,kg:+kg,obs}, D=>{ const k=pasto; if(!D.semi.ultTrato[k]||D.semi.ultTrato[k].data<=data) D.semi.ultTrato[k]={data,kg:+kg}; D.semi.recentes.unshift({data,pasto,kg:+kg}); });
+    n++;
+  });
+  if(!n) return toast('Preencha pasto e kg');
+  salvo(n);
+}
+function ultimosTratos(){
+  if(!dados) return '';
+  const rows = dados.semi.recentes.slice(0,12).map(r=>`<tr><td>${br(r.data)}</td><td>${esc(r.pasto)}</td><td class="n">${fmt(r.kg)}</td></tr>`).join('');
+  return `<div class="card"><h3>Últimos tratos</h3><table><tr><th>Data</th><th>Pasto</th><th class="n">kg</th></tr>${rows}</table></div>`;
+}
+
+/* ---- Mudar de pasto (rotacionado) ---- */
+TELAS.mudar = (mSel) => {
+  const ms = modulos();
+  if(!ms.length){ app.innerHTML = semDados()+'<h2>Mudar de pasto</h2>'; return; }
+  mSel = mSel || (ms.find(m=>m.atual)||ms[0]).n;
+  const m = ms.find(x=>x.n==mSel) || ms[0];
+  const at = m.atual, dias = at ? diasDesde(at.entrada) : null;
+  const plan = at ? (m.pastos.find(p=>norm(p.nome)===norm(at.pasto))||{}).dias : null;
+  const lotes = m.lotes.map(l=>`${l.cabecas} ${esc(l.categoria)} (${l.peso} kg)`).join(', ') || 'sem lote';
+  app.innerHTML = `<h2>Mudar de pasto</h2><div class="card">
+    <label>Módulo</label><select id="fMod" onchange="ir('mudar',this.value)">${opts(ms.map(x=>[x.n,'Módulo '+x.n+(x.atual?' — '+x.atual.pasto:'')]), m.n)}</select>
+    <div class="status">${esc(m.resumo)}<br>Lote: ${lotes}</div>
+    <div class="card" style="margin:10px 0 0;background:#F7F6F1">Pasto atual: <b>${at?esc(at.pasto):'—'}</b><br>
+      Entrou em ${at?br(at.entrada):'—'} · <b>${dias==null?'—':dias+' dias'}</b> ${plan?` de ${plan} planejados ${tagDias(dias,plan)}`:''}</div>
+    <label>Novo pasto</label><select id="fPasto">${opts(m.pastos.map(p=>[p.nome.trim(), p.nome.trim()+' ('+p.dias+' d)']), proximo(m))}</select>
+    ${campoData()}
+    <label>Obs.</label><input id="fObs">
+    <div style="height:14px"></div><button class="btn prim full" onclick="salvaMudar('${esc(m.n)}')">Salvar mudança</button></div>
+    <div class="card"><h3>Pastos do módulo ${esc(m.n)}</h3><table><tr><th>Pasto</th><th class="n">Dias plan.</th></tr>${m.pastos.map(p=>`<tr><td>${esc(p.nome)}${at&&norm(p.nome)===norm(at.pasto)?' <span class="tag t-ok">atual</span>':''}</td><td class="n">${p.dias}</td></tr>`).join('')}</table></div>`;
+};
+function tagDias(d,plan){ if(d==null||!plan) return ''; if(d>plan) return '<span class="tag t-vm">passou</span>'; if(d>=plan) return '<span class="tag t-am">hoje</span>'; return '<span class="tag t-ok">ok</span>'; }
+function proximo(m){ if(!m.atual) return m.pastos[0]&&m.pastos[0].nome.trim(); const i=m.pastos.findIndex(p=>norm(p.nome)===norm(m.atual.pasto)); return (m.pastos[(i+1)%m.pastos.length]||{}).nome; }
+function salvaMudar(n){
+  const pasto=val('fPasto'), data=val('fData'), obs=val('fObs');
+  lancar('mudar',{modulo:n,pasto,data,obs}, D=>{ const m=D.modulos.find(x=>x.n==n); if(m) m.atual={pasto,entrada:data}; });
+  salvo(1);
+}
+
+/* ---- Novo lote / ajustar ---- */
+TELAS.lote = () => {
+  const ms = modulos();
+  app.innerHTML = `${semDados()}<h2>Lote do rotacionado</h2><div class="card">
+    ${seg('fModo',[['novo','Novo'],['ajustar','Ajustar'],['remover','Tirar']],'novo')}
+    <label>Módulo</label><select id="fMod" onchange="lotesDoModulo()">${opts(ms.map(x=>[x.n,'Módulo '+x.n+(x.atual?' — '+x.atual.pasto:'')]))}</select>
+    <div class="status" id="lotesAtuais"></div>
+    <label>Categoria</label><input id="fCat" list="dlCat" placeholder="Boi, Garrote, Vaca, Bezerro…"><datalist id="dlCat">${['Boi','Garrote','Novilha','Vaca','Bezerro','Bezerra','Touro'].map(c=>`<option value="${c}">`).join('')}</datalist>
+    <div class="grade"><div><label>Cabeças</label><input id="fCab" type="number" inputmode="numeric"></div><div><label>Peso médio (kg)</label><input id="fPeso" type="number" inputmode="decimal"></div></div>
+    ${campoData()}<label>Obs.</label><input id="fObs">
+    <div style="height:14px"></div><button class="btn prim full" onclick="salvaLote()">Salvar</button></div>`;
+  lotesDoModulo();
+};
+function lotesDoModulo(){ const m=modulos().find(x=>x.n==val('fMod')); $('#lotesAtuais').innerHTML = m ? 'Hoje: '+(m.lotes.map(l=>`${l.cabecas} ${esc(l.categoria)} (${l.peso} kg)`).join(', ')||'sem lote') : ''; }
+function salvaLote(){
+  const d={modo:val('fModo'),modulo:val('fMod'),categoria:val('fCat'),cabecas:val('fCab'),peso:val('fPeso'),data:val('fData'),obs:val('fObs')};
+  if(!d.categoria) return toast('Informe a categoria');
+  if(d.modo!=='remover' && !d.cabecas) return toast('Informe as cabeças');
+  lancar('lote',d,D=>{ const m=D.modulos.find(x=>x.n==d.modulo); if(!m) return; const i=m.lotes.findIndex(l=>l.categoria.toUpperCase()===d.categoria.toUpperCase());
+    if(d.modo==='remover'){ if(i>=0) m.lotes.splice(i,1); } else if(i>=0){ m.lotes[i].cabecas=+d.cabecas; m.lotes[i].peso=+d.peso; } else m.lotes.push({categoria:d.categoria,cabecas:+d.cabecas,peso:+d.peso}); });
+  salvo(1);
+}
+
+/* ---- Gado entrada/saída ---- */
+TELAS.gado = () => {
+  app.innerHTML = `${semDados()}<h2>Entrada / Saída de gado</h2><div class="card">
+    ${seg('fMov',[['entrada','Entrada'],['saida','Saída']],'entrada')}
+    <label>Fazenda</label><select id="fFaz">${opts(fazendas(), fazenda)}</select>
+    <label>Sexo</label>${seg('fSexo',[['M','Macho'],['F','Fêmea']],'M')}
+    <label>Quantidade</label><input id="fQtd" type="number" inputmode="numeric">
+    ${campoData()}
+    <label>De quem / para quem (obs.)</label><input id="fObs" placeholder="Ex.: MINERVA TGA, compra Fulano…" autocapitalize="characters">
+    <div style="height:14px"></div><button class="btn prim full" onclick="salvaGado()">Salvar</button></div>${ultimosGado()}`;
+};
+function salvaGado(){
+  const d={mov:val('fMov'),fazenda:val('fFaz'),sexo:val('fSexo'),qtd:val('fQtd'),data:val('fData'),obs:val('fObs').toUpperCase()};
+  if(!+d.qtd) return toast('Informe a quantidade');
+  lancar('gado',d,D=>ajustaSaldo(D,d.fazenda,d.sexo,(d.mov==='saida'?-1:1)*d.qtd));
+  salvo(1);
+}
+function ajustaSaldo(D,faz,sexo,q){ const s=D.gado.saldo[faz]||(D.gado.saldo[faz]={m:0,f:0}); if(sexo==='F') s.f+= +q; else s.m+= +q; }
+function ultimosGado(){
+  if(!dados) return '';
+  const rows=dados.gado.ultimos.slice(0,10).map(r=>{ const e=r.em+r.ef, s=r.sm+r.sf; return `<tr><td>${br(r.data)}</td><td>${esc(r.faz)}</td><td class="n">${e?'+'+e:'-'+s}</td><td>${esc(r.obs)}</td></tr>`; }).join('');
+  return `<div class="card"><h3>Últimos lançamentos</h3><table><tr><th>Data</th><th>Faz.</th><th class="n">Cab.</th><th>Obs.</th></tr>${rows}</table></div>`;
+}
+
+/* ---- Transferência ---- */
+TELAS.transf = () => {
+  const fz=fazendas(), outra=fz.find(f=>f!==fazenda)||'União';
+  app.innerHTML = `${semDados()}<h2>Transferência entre fazendas</h2><div class="card">
+    <div class="grade"><div><label>De</label><select id="fDe">${opts(fz,fazenda)}</select></div><div><label>Para</label><select id="fPara">${opts(fz,outra)}</select></div></div>
+    <label>Sexo</label>${seg('fSexo',[['M','Macho'],['F','Fêmea']],'M')}
+    <label>Quantidade</label><input id="fQtd" type="number" inputmode="numeric">
+    ${campoData()}<label>Obs.</label><input id="fObs">
+    <div class="status">Grava duas linhas: saída em uma fazenda e entrada na outra.</div>
+    <div style="height:14px"></div><button class="btn prim full" onclick="salvaTransf()">Salvar</button></div>`;
+};
+function salvaTransf(){
+  const d={de:val('fDe'),para:val('fPara'),sexo:val('fSexo'),qtd:val('fQtd'),data:val('fData'),obs:val('fObs')};
+  if(d.de===d.para) return toast('Escolha fazendas diferentes');
+  if(!+d.qtd) return toast('Informe a quantidade');
+  lancar('transf',d,D=>{ ajustaSaldo(D,d.de,d.sexo,-d.qtd); ajustaSaldo(D,d.para,d.sexo,+d.qtd); });
+  salvo(1);
+}
+
+/* ---- Morte ---- */
+TELAS.morte = () => {
+  app.innerHTML = `${semDados()}<h2>Morte</h2><div class="card">
+    <label>Fazenda</label><select id="fFaz">${opts(fazendas(), fazenda)}</select>
+    <label>Sexo</label>${seg('fSexo',[['M','Macho'],['F','Fêmea']],'M')}
+    <div class="grade"><div><label>Quantidade</label><input id="fQtd" type="number" inputmode="numeric" value="1"></div><div><label>Brinco / número</label><input id="fBrinco" inputmode="numeric"></div></div>
+    <label>Pasto / local</label><input id="fPasto" list="dlLoc"><datalist id="dlLoc">${locaisTodos().map(l=>`<option value="${esc(l)}">`).join('')}</datalist>
+    <label>Causa</label><input id="fCausa" list="dlCausa" placeholder="Ex.: fraqueza, cobra, raio, intoxicação"><datalist id="dlCausa">${['FRAQUEZA','COBRA','RAIO','INTOXICAÇÃO','ACIDENTE','DOENÇA','NÃO IDENTIFICADA'].map(c=>`<option value="${c}">`).join('')}</datalist>
+    ${campoData()}<label>Obs.</label><input id="fObs">
+    <div class="status">Entra como saída no controle de gado, com "MORTE" na observação.</div>
+    <div style="height:14px"></div><button class="btn prim full" onclick="salvaMorte()">Salvar</button></div>`;
+};
+function salvaMorte(){
+  const d={fazenda:val('fFaz'),sexo:val('fSexo'),qtd:val('fQtd')||1,brinco:val('fBrinco'),pasto:val('fPasto'),causa:val('fCausa'),data:val('fData'),obs:val('fObs')};
+  lancar('morte',d,D=>ajustaSaldo(D,d.fazenda,d.sexo,-d.qtd)); salvo(1);
+}
+
+/* ---- Chuva ---- */
+TELAS.chuva = () => {
+  const c = dados && dados.chuva;
+  app.innerHTML = `${semDados()}<h2>Chuva</h2><div class="card">${campoData()}
+    <label>Milímetros</label><input id="fMm" type="number" inputmode="decimal" step="0.1">
+    <label>Obs.</label><input id="fObs">
+    <div style="height:14px"></div><button class="btn prim full" onclick="salvaChuva()">Salvar</button></div>
+    ${c?`<div class="card"><div class="kpi"><div><b>${fmt(c.totalMes)}</b><span>mm no mês</span></div><div><b>${fmt(c.totalAno)}</b><span>mm no ano</span></div><div><b>${c.recentes[0]?diasDesde(c.recentes[0].data):'—'}</b><span>dias sem chuva</span></div></div>
+      <table style="margin-top:10px"><tr><th>Data</th><th class="n">mm</th></tr>${c.recentes.slice(0,12).map(r=>`<tr><td>${br(r.data)}</td><td class="n">${fmt(r.mm)}</td></tr>`).join('')}</table></div>`:''}`;
+};
+function salvaChuva(){
+  const d={data:val('fData'),mm:val('fMm'),obs:val('fObs')};
+  if(d.mm==='') return toast('Informe os mm');
+  lancar('chuva',d,D=>{ D.chuva.recentes.unshift({data:d.data,mm:+d.mm}); D.chuva.recentes.sort((a,b)=>a.data<b.data?1:-1); if(d.data.slice(0,4)===hojeISO().slice(0,4)) D.chuva.totalAno+= +d.mm; if(d.data.slice(0,7)===hojeISO().slice(0,7)) D.chuva.totalMes+= +d.mm; });
+  salvo(1);
+}
+
+/* ---- Contagem ---- */
+TELAS.contagem = () => {
+  app.innerHTML = `${semDados()}<h2>Contagem</h2><div class="card">
+    <label>Fazenda</label><select id="fFaz">${opts(fazendas(), fazenda)}</select>
+    <label>Local</label><select id="fLocal" onchange="esperado()">${opts(locaisTodos())}</select>
+    <div class="status" id="esp"></div>
+    <label>Cabeças contadas</label><input id="fCab" type="number" inputmode="numeric" oninput="esperado()">
+    ${campoData()}<label>Obs.</label><input id="fObs">
+    <div style="height:14px"></div><button class="btn prim full" onclick="salvaContagem()">Salvar</button></div>
+    ${dados&&dados.contagens.length?`<div class="card"><h3>Últimas contagens</h3><table><tr><th>Data</th><th>Local</th><th class="n">Cab.</th></tr>${dados.contagens.slice(0,10).map(r=>`<tr><td>${br(r.data)}</td><td>${esc(r.local)}</td><td class="n">${fmt(r.cab)}</td></tr>`).join('')}</table></div>`:''}`;
+  esperado();
+};
+function esperadoDe(local){
+  if(!dados) return null;
+  if(local.startsWith('Pasto ')){ const p=dados.semi.pastos.find(x=>x.pasto===local.slice(6)); return p? p.bois : null; }
+  if(local.startsWith('Módulo ')){ const m=dados.modulos.find(x=>x.n==local.slice(7)); return m? m.lotes.reduce((s,l)=>s+l.cabecas,0) : null; }
+  return null;
+}
+function esperado(){ const e=esperadoDe(val('fLocal')), c=+val('fCab'); $('#esp').innerHTML = e==null?'':`Na planilha: <b>${fmt(e)}</b> cab.`+(c? (c===e?' <span class="tag t-ok">bate</span>':` <span class="tag t-vm">diferença ${c-e>0?'+':''}${c-e}</span>`):''); }
+function salvaContagem(){
+  const d={fazenda:val('fFaz'),local:val('fLocal'),cabecas:val('fCab'),data:val('fData'),obs:val('fObs')};
+  if(d.cabecas==='') return toast('Informe as cabeças');
+  lancar('contagem',d,D=>D.contagens.unshift({data:d.data,local:d.local,cab:+d.cabecas})); salvo(1);
+}
+
+/* ---- Bebedouro ---- */
+const LIM_BEB = 7;
+TELAS.bebedouro = () => {
+  const b = dados ? dados.bebedouros : {};
+  const lista = locaisTodos().filter(l=>!['Outro'].includes(l)).map(l=>{ const u=b[l]; const dd=u?diasDesde(u.data):null; return {l,u,dd}; });
+  app.innerHTML = `${semDados()}<h2>Lavagem de bebedouro</h2><div class="card">
+    <label>Local</label><select id="fLocal">${opts(lista.map(x=>x.l))}</select>
+    ${campoData()}<label>Obs.</label><input id="fObs">
+    <div style="height:14px"></div><button class="btn prim full" onclick="salvaBeb()">Salvar</button></div>
+    <div class="card"><h3>Última lavagem (atrasado depois de ${LIM_BEB} dias)</h3><table><tr><th>Local</th><th>Última</th><th class="n">Dias</th></tr>
+    ${lista.map(x=>`<tr><td>${esc(x.l)}</td><td>${x.u?br(x.u.data):'—'}</td><td class="n">${x.dd==null?'<span class="tag t-cz">nunca</span>':`<span class="tag ${x.dd>LIM_BEB?'t-vm':x.dd>=LIM_BEB-1?'t-am':'t-ok'}">${x.dd}</span>`}</td></tr>`).join('')}</table></div>`;
+};
+function salvaBeb(){ const d={local:val('fLocal'),data:val('fData'),obs:val('fObs')}; lancar('bebedouro',d,D=>{ const u=D.bebedouros[d.local]; if(!u||u.data<=d.data) D.bebedouros[d.local]={data:d.data,obs:d.obs}; }); salvo(1); }
+
+/* ---- Cocho / sal (rotacionado) ---- */
+TELAS.cocho = () => {
+  const ms = modulos();
+  if(!dados){ app.innerHTML = semDados()+'<h2>Cocho / sal</h2>'; return; }
+  app.innerHTML = `${semDados()}<h2>Cocho / sal</h2><div class="card">
+    <label>Módulo</label><select id="fMod" onchange="cochoMod()">${opts(ms.map(x=>[x.n,'Módulo '+x.n+(x.atual?' — '+x.atual.pasto:'')]))}</select>
+    <label>Pasto</label><select id="fPasto"></select>
+    <div class="status" id="cochoUlt"></div>
+    <label>Produto</label><input id="fProd" list="dlProd" value="${esc(LS.get('ultProduto',''))}"><datalist id="dlProd">${['Sal mineral','Proteinado','Ureia','Sal branco'].map(c=>`<option value="${c}">`).join('')}</datalist>
+    <div class="grade"><div><label>Sacos</label><input id="fSacos" type="number" inputmode="decimal" oninput="cochoKg()"></div><div><label>Kg por saco</label><input id="fKgS" type="number" inputmode="decimal" value="${LS.get('kgSaco',30)}" oninput="cochoKg()"></div></div>
+    <div class="status" id="cochoTot"></div>
+    ${campoData()}<label>Obs.</label><input id="fObs">
+    <div style="height:14px"></div><button class="btn prim full" onclick="salvaCocho()">Salvar</button></div>
+    <div class="card"><h3>Último abastecimento por módulo</h3><table><tr><th>Módulo</th><th>Data</th><th class="n">Dias</th><th class="n">Sacos</th></tr>
+    ${ms.map(m=>{ const u=dados.ultCocho[m.n]; return `<tr><td>${m.n}</td><td>${u?br(u.data):'—'}</td><td class="n">${u?diasDesde(u.data):'—'}</td><td class="n">${u?fmt(u.sacos):''}</td></tr>`; }).join('')}</table></div>`;
+  cochoMod();
+};
+function cochoMod(){ const m=modulos().find(x=>x.n==val('fMod')); if(!m) return; $('#fPasto').innerHTML=opts(m.pastos.map(p=>p.nome.trim()), m.atual?m.atual.pasto.trim():''); const u=dados.ultCocho[m.n]; $('#cochoUlt').textContent = u? `Último: ${br(u.data)} — ${u.sacos} sacos de ${u.produto}` : 'Sem abastecimento lançado.'; }
+function cochoKg(){ const s=+val('fSacos'), k=+val('fKgS'); $('#cochoTot').textContent = s&&k ? 'Total: '+fmt(s*k)+' kg' : ''; }
+function salvaCocho(){
+  const sacos=+val('fSacos'), kgs=+val('fKgS');
+  const d={modulo:val('fMod'),pasto:val('fPasto'),produto:val('fProd'),sacos,kg:sacos*kgs,data:val('fData'),obs:val('fObs')};
+  if(!sacos) return toast('Informe os sacos');
+  LS.set('ultProduto',d.produto); LS.set('kgSaco',kgs);
+  lancar('cocho',d,D=>{ D.ultCocho[d.modulo]={data:d.data,produto:d.produto,sacos,kg:d.kg}; }); salvo(1);
+}
+
+/* ---- Máquinas ---- */
+TELAS.maquinas = () => {
+  const ms = dados ? dados.maquinas : [];
+  const hist = dados ? dados.maqHist : [];
+  const ult = n => hist.find(h=>h.maquina===n);
+  app.innerHTML = `${semDados()}<h2>Máquinas</h2>
+    ${ms.map(m=>{ const u=ult(m.nome); return `<div class="card" onclick="ir('maquina','${esc(m.nome).replace(/'/g,"\\'")}')" style="cursor:pointer"><b>${esc(m.nome)}</b> <span class="muted">${esc(m.tipo)}</span><div class="muted">${u? 'Último: '+br(u.data)+' · '+esc(u.tipo)+(u.horimetro?' · '+fmt(u.horimetro)+' h':'') : 'sem histórico'}</div></div>`; }).join('') || '<div class="card muted">Nenhuma máquina cadastrada ainda.</div>'}
+    <div class="card"><h3>Cadastrar máquina</h3><label>Nome</label><input id="fNome" placeholder="Ex.: Trator MF 4292">
+    <label>Tipo</label><input id="fTipo" list="dlTipoM"><datalist id="dlTipoM">${['Trator','Pá carregadeira','Caminhão','Camionete','Moto','Vagão','Roçadeira','Gerador','Outro'].map(c=>`<option value="${c}">`).join('')}</datalist>
+    <div style="height:14px"></div><button class="btn full" onclick="novaMaq()">+ Cadastrar</button></div>`;
+};
+function novaMaq(){ const d={nome:val('fNome'),tipo:val('fTipo')}; if(!d.nome) return toast('Informe o nome'); lancar('maq_nova',d,D=>{ if(!D.maquinas.find(m=>m.nome.toUpperCase()===d.nome.toUpperCase())) D.maquinas.push({nome:d.nome,tipo:d.tipo}); }); toast('Máquina cadastrada'); ir('maquinas'); if(navigator.onLine) sincronizar(true); }
+TELAS.maquina = (nome) => {
+  const hist = (dados?dados.maqHist:[]).filter(h=>h.maquina===nome);
+  app.innerHTML = `<h2>${esc(nome)}</h2><div class="card">
+    <label>Tipo</label>${seg('fTipoL',[['Abastecimento','Diesel'],['Manutenção','Manutenção'],['Horímetro','Horímetro'],['Outro','Outro']],'Abastecimento')}
+    <div class="grade"><div><label>Horímetro / km</label><input id="fHor" type="number" inputmode="decimal"></div><div><label>Litros</label><input id="fLit" type="number" inputmode="decimal"></div></div>
+    <label>Descrição</label><input id="fDesc" placeholder="Ex.: troca de óleo, pneu, conserto…">
+    ${campoData()}
+    <div style="height:14px"></div><button class="btn prim full" onclick="salvaMaq('${esc(nome).replace(/'/g,"\\'")}')">Salvar</button></div>
+    <div class="card"><h3>Histórico</h3><table><tr><th>Data</th><th>Tipo</th><th class="n">Hor.</th><th class="n">L</th><th>Desc.</th></tr>
+    ${hist.map(h=>`<tr><td>${br(h.data)}</td><td>${esc(h.tipo)}</td><td class="n">${h.horimetro?fmt(h.horimetro):''}</td><td class="n">${h.litros?fmt(h.litros):''}</td><td>${esc(h.desc)}</td></tr>`).join('')||'<tr><td colspan="5" class="muted">Sem histórico</td></tr>'}</table></div>`;
+};
+function salvaMaq(nome){
+  const d={maquina:nome,tipo:val('fTipoL'),horimetro:val('fHor'),litros:val('fLit'),desc:val('fDesc'),data:val('fData')};
+  lancar('maquina',d,D=>D.maqHist.unshift({data:d.data,maquina:nome,tipo:d.tipo,horimetro:+d.horimetro,litros:+d.litros,desc:d.desc,user:user.nome}));
+  toast('Salvo na fila'); ir('maquina',nome); if(navigator.onLine) sincronizar(true);
+}
+
+/* ---- Fila ---- */
+const NOMES = {gado:'Entrada/Saída',transf:'Transferência',morte:'Morte',trato:'Trato',chuva:'Chuva',mudar:'Mudar de pasto',lote:'Lote',contagem:'Contagem',bebedouro:'Bebedouro',cocho:'Cocho/sal',maquina:'Máquina',maq_nova:'Nova máquina'};
+function resumo(x){ const d=x.d; switch(x.tipo){
+  case 'trato': return d.pasto+' · '+fmt(d.kg)+' kg';
+  case 'gado': return (d.mov==='saida'?'Saída ':'Entrada ')+d.qtd+(d.sexo==='F'?' F':' M')+' · '+d.fazenda+(d.obs?' · '+d.obs:'');
+  case 'transf': return d.qtd+(d.sexo==='F'?' F':' M')+' · '+d.de+' → '+d.para;
+  case 'morte': return d.qtd+(d.sexo==='F'?' F':' M')+' · '+(d.pasto||'')+' '+(d.causa||'');
+  case 'chuva': return d.mm+' mm';
+  case 'mudar': return 'Módulo '+d.modulo+' → '+d.pasto;
+  case 'lote': return d.modo+' · Módulo '+d.modulo+' · '+d.categoria+' '+(d.cabecas||'');
+  case 'contagem': return d.local+' · '+d.cabecas+' cab';
+  case 'bebedouro': return d.local;
+  case 'cocho': return 'Módulo '+d.modulo+' · '+d.sacos+' sacos';
+  case 'maquina': return d.maquina+' · '+d.tipo;
+  case 'maq_nova': return d.nome; } return ''; }
+TELAS.fila = () => {
+  app.innerHTML = `<h2>Fila (${fila.length})</h2>
+  <div class="card">${fila.length? '<table>'+fila.map((x,i)=>`<tr><td>${br(x.d.data)||''}<br><span class="muted">${esc(x.user)}</span></td><td><b>${NOMES[x.tipo]||x.tipo}</b><br>${esc(resumo(x))}${x.erro?`<br><span class="tag t-vm">${esc(x.erro)}</span>`:''}</td><td><button class="x" onclick="tiraFila(${i})">×</button></td></tr>`).join('')+'</table>' : '<span class="muted">Nada pendente. Tudo já foi enviado.</span>'}</div>
+  ${fila.length?`<button class="btn prim full" onclick="sincronizar()">⟳ Enviar agora</button>`:''}`;
+};
+function tiraFila(i){ if(!confirm('Apagar este lançamento da fila? Ele não vai para a planilha.')) return; fila.splice(i,1); LS.set('fila',fila); ir('fila'); }
+
+/* ---- Painel ---- */
+TELAS.painel = () => {
+  if(!dados){ app.innerHTML=semDados(); return; }
+  const g=dados.gado.saldo;
+  const gado = Object.keys(g).map(f=>`<tr><td>${esc(f)}</td><td class="n">${fmt(g[f].m)}</td><td class="n">${fmt(g[f].f)}</td><td class="n"><b>${fmt(g[f].m+g[f].f)}</b></td></tr>`).join('');
+  const tot = Object.values(g).reduce((s,x)=>s+x.m+x.f,0);
+  const c=dados.chuva, dsc = c.recentes[0]?diasDesde(c.recentes[0].data):null;
+  const semi = dados.semi.pastos.filter(p=>p.bois).map(p=>{ const u=dados.semi.ultTrato[p.pasto]; const d=u?diasDesde(u.data):null; return {p,u,d}; }).sort((a,b)=>(b.d==null?999:b.d)-(a.d==null?999:a.d));
+  const mods = dados.modulos.filter(m=>m.atual).map(m=>{ const d=diasDesde(m.atual.entrada); const plan=(m.pastos.find(p=>norm(p.nome)===norm(m.atual.pasto))||{}).dias; return {m,d,plan}; });
+  const pend = mods.filter(x=>x.plan && x.d>=x.plan).length;
+  app.innerHTML = `<h2>Painel</h2>
+  <div class="card"><div class="kpi"><div><b>${fmt(tot)}</b><span>cabeças</span></div><div><b>${dsc==null?'—':dsc}</b><span>dias sem chuva</span></div><div><b>${pend}</b><span>módulos p/ mudar</span></div></div></div>
+  <div class="card"><h3>Gado</h3><table><tr><th>Fazenda</th><th class="n">Machos</th><th class="n">Fêmeas</th><th class="n">Total</th></tr>${gado}</table></div>
+  <div class="card"><h3>Chuva</h3>Última: <b>${c.recentes[0]?br(c.recentes[0].data)+' ('+fmt(c.recentes[0].mm)+' mm)':'—'}</b> · mês ${fmt(c.totalMes)} mm · ano ${fmt(c.totalAno)} mm</div>
+  <div class="card"><h3>Rotacionado — dias no pasto</h3><table><tr><th>Mód.</th><th>Pasto</th><th class="n">Dias</th><th></th></tr>
+    ${mods.map(x=>`<tr><td>${x.m.n}</td><td>${esc(x.m.atual.pasto)}</td><td class="n">${x.d}${x.plan?'/'+x.plan:''}</td><td>${tagDias(x.d,x.plan)}</td></tr>`).join('')}</table></div>
+  <div class="card"><h3>Semi-confinamento — último trato</h3><table><tr><th>Pasto</th><th class="n">Bois</th><th>Último</th><th class="n">Dias</th></tr>
+    ${semi.map(x=>`<tr><td>${esc(x.p.pasto)}</td><td class="n">${x.p.bois}</td><td>${x.u?br(x.u.data):'—'}</td><td class="n">${x.d==null?'—':`<span class="tag ${x.d>=3?'t-vm':x.d>=2?'t-am':'t-ok'}">${x.d}</span>`}</td></tr>`).join('')}</table></div>
+  <p class="muted">Dados de ${new Date(LS.get('dadosEm',dados.gerado)).toLocaleString('pt-BR')} + lançamentos da fila.</p>`;
+};
+
+/* ---- Mapa ---- */
+let MAPA=null, GEO=null;
+TELAS.mapa = async () => {
+  app.innerHTML = `<div class="linha" style="justify-content:space-between;margin-bottom:8px"><h2 style="margin:0">Mapa</h2><button class="btn peq" onclick="baixarMapa()">Baixar mapa offline</button></div><div id="mapa"></div>
+   <div class="muted" style="margin-top:6px"><span class="tag" style="background:#CF6B33;color:#fff">semi</span> <span class="tag" style="background:#2E7D4F;color:#fff">rotacionado com gado</span> <span class="tag" style="background:#cfd8cc">vazio</span></div>`;
+  if(!GEO){ try{ GEO = await (await fetch('pastos.json')).json(); }catch(e){ app.insertAdjacentHTML('beforeend','<div class="card t-vm">Mapa não carregou.</div>'); return; } }
+  if(MAPA){ MAPA.remove(); MAPA=null; }
+  MAPA = L.map('mapa',{zoomControl:true, attributionControl:false});
+  L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:18}).addTo(MAPA);
+  const semi = {}; (dados?dados.semi.pastos:[]).forEach(p=>semi[norm(p.pasto)]=p);
+  const atual = {}; (dados?dados.modulos:[]).forEach(m=>{ if(m.atual) atual[norm(m.atual.pasto)]=m; });
+  const lay = L.geoJSON(GEO, {
+    style: f => { const p=f.properties;
+      if(p.k==='b') return {color:'#fff',weight:2,fill:false};
+      if(p.k==='m') return {color:'#2f7d3a',weight:1,fillColor:'#1f5e2a',fillOpacity:.35};
+      const s=semi[norm(p.nome)], m=atual[norm(p.pl)];
+      if(s && s.bois) return {color:'#fff',weight:1.5,fillColor:'#CF6B33',fillOpacity:.65};
+      if(m) return {color:'#fff',weight:1.5,fillColor:'#2E7D4F',fillOpacity:.7};
+      return {color:'#fff',weight:1,fillColor:'#cfd8cc',fillOpacity:.25}; },
+    onEachFeature: (f,l) => { const p=f.properties; if(p.k!=='p') return;
+      const s=semi[norm(p.nome)], m=atual[norm(p.pl)];
+      let h=`<b>Pasto ${esc(p.nome)}</b><br>${p.ha?esc(p.ha)+' ha':''}${p.rot?' · rotacionado módulo '+esc(p.rot):''}`;
+      if(s){ const u=dados.semi.ultTrato[s.pasto]; h+=`<br>${s.bois} bois · ${s.peso} kg · entrada ${br(s.entrada)}<br>Último trato: ${u?br(u.data)+' ('+fmt(u.kg)+' kg)':'—'}`; }
+      if(m){ h+=`<br><b>Gado aqui desde ${br(m.atual.entrada)}</b> (${diasDesde(m.atual.entrada)} dias)<br>${m.lotes.map(l=>l.cabecas+' '+esc(l.categoria)).join(', ')}`; }
+      l.bindPopup(h); l.bindTooltip(p.nome,{permanent:true,direction:'center',className:'rot'}); }
+  }).addTo(MAPA);
+  MAPA.fitBounds(lay.getBounds());
+  const rotulos = () => { const on = MAPA.getZoom() >= 15; lay.eachLayer(l => { if(l.getTooltip()){ on ? l.openTooltip() : l.closeTooltip(); } }); };
+  MAPA.on('zoomend', rotulos); rotulos();
+  if('geolocation' in navigator){ navigator.geolocation.getCurrentPosition(pos=>{ L.circleMarker([pos.coords.latitude,pos.coords.longitude],{radius:7,color:'#fff',weight:2,fillColor:'#1a73e8',fillOpacity:1}).addTo(MAPA).bindPopup('Você está aqui'); },()=>{}, {enableHighAccuracy:true,timeout:8000}); }
+};
+async function baixarMapa(){
+  if(!navigator.onLine) return toast('Precisa de internet para baixar');
+  if(!GEO) return;
+  const b = L.geoJSON(GEO).getBounds(); const urls=[];
+  const t = (lat,lon,z)=>{ const n=2**z; const x=Math.floor((lon+180)/360*n); const r=lat*Math.PI/180; const y=Math.floor((1-Math.log(Math.tan(r)+1/Math.cos(r))/Math.PI)/2*n); return [x,y]; };
+  for(let z=12; z<=16; z++){ const [x0,y0]=t(b.getNorth(),b.getWest(),z), [x1,y1]=t(b.getSouth(),b.getEast(),z);
+    for(let x=x0;x<=x1;x++) for(let y=y0;y<=y1;y++) urls.push(`https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/${z}/${y}/${x}`); }
+  toast('Baixando '+urls.length+' pedaços do mapa…', 4000);
+  const c = await caches.open('fl-tiles'); let ok=0;
+  for(let i=0;i<urls.length;i+=8){ await Promise.all(urls.slice(i,i+8).map(u=>fetch(u,{mode:'cors'}).then(r=>{ if(r.ok){ ok++; return c.put(u,r); } }).catch(()=>{}))); }
+  toast('Mapa offline pronto ('+ok+' pedaços) ✔', 3500);
+}
+
+/* ======= início ======= */
+function render(){ if(tela==='home') TELAS.home(); }
+window.addEventListener('online', ()=>{ render(); sincronizar(true); });
+window.addEventListener('offline', render);
+if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
+if(!user) ir('login'); else { ir('home'); sincronizar(true); }
+</script>
+</body>
+</html>
