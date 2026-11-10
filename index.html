@@ -103,7 +103,7 @@ td.n,th.n{text-align:right}
 <script>
 /* ======= configuração ======= */
 const API = 'https://script.google.com/macros/s/AKfycbwY3RA38GPBgCJ4UZjjwriIR1XyGTsPuZ1mBAuUJ_TNuZuF4nQg7P_q68GT8okeYCZd/exec';
-const VERSAO = '2.2';
+const VERSAO = '2.3';
 
 /* ======= estado ======= */
 const LS = {
@@ -252,11 +252,12 @@ function calcModulo(mod0, datas, lotes){
   if(cab>0) status = ua > mod.cap+0.5 ? 'acima' : (ua < mod.cap*0.85 ? 'aumentar' : 'ok');
   const difUA = mod.cap-ua, difCab = cabPorUA>0 ? Math.round(difUA/cabPorUA) : 0;
   const ps = mod.pastos.map(p=>({nome:p[0], dias:p[1], entrada:'', saida:'', salva:false}));
+  let prevT = null;
   for(let i=0;i<ps.length;i++){
     const k = mod.n+'||'+ps[i].nome; let ent = datas[k]||'';
     ps[i].salva = !!datas[k];
-    if(!ent && i>0 && ps[i-1].saida) ent = ps[i-1].saida;
-    ps[i].entrada = ent; ps[i].saida = ent ? somaDias(ent, ps[i].dias) : '';
+    const entT = ent ? parseISO(ent).getTime() : (i>0 ? prevT : null), saiT = entT!=null ? entT + ps[i].dias*864e5 : null;
+    ps[i].entrada = entT!=null ? isoDe(new Date(entT)) : ''; ps[i].saida = saiT!=null ? isoDe(new Date(saiT)) : ''; prevT = saiT;
   }
   let at=-1; ps.forEach((p,j)=>{ if(p.entrada && p.entrada<=H) at=j; });
   ps.forEach((p,idx)=>{ p.estado=''; if(!p.entrada){ p.estado = idx>at?'prox':''; return; } if(idx<at) p.estado='feito'; else if(idx===at) p.estado = H>p.saida?'atrasado':'atual'; else p.estado='prox'; });
@@ -430,7 +431,7 @@ function rotManejo(){
         <button class="btn peq full" style="border-style:dashed;border-color:var(--laranja);color:var(--laranja)" onclick="rotLote(${m.n},-1,'add')">+ categoria</button>
         <div class="tag ${c.status==='acima'?'t-vm':c.status==='ok'?'t-ok':'t-am'}" style="display:block;margin:10px 0;padding:8px 10px;white-space:normal">${CHIP[c.status]} · ${Math.round(c.ua)} de ${Math.round(c.cap)} UA${c.cab? ' · '+(c.difCab>=0?'cabe +~'+c.difCab:'tirar ~'+Math.abs(c.difCab))+' cab':''}</div>
         <div class="muted" style="font-weight:700;margin:10px 0 6px">PASTOS — LANCE A DATA DE ENTRADA</div>
-        ${c.pastos.map(p=>{ const e=EST[p.estado]; return `<div class="pcard ${p.estado}"><div class="linha" style="justify-content:space-between"><b>${esc(p.nome)}</b><span><span class="tag t-cz">${p.dias} d</span> ${e?`<span class="tag ${e[1]}">${e[0]}</span>`:''}</span></div>
+        ${c.pastos.map(p=>{ const e=EST[p.estado]; return `<div class="pcard ${p.estado}"><div class="linha" style="justify-content:space-between"><b>${esc(p.nome)}</b><span><span class="tag t-cz">${Math.ceil(p.dias-1e-9)} d</span> ${e?`<span class="tag ${e[1]}">${e[0]}</span>`:''}</span></div>
           <div class="grade" style="gap:8px"><div><label>Entrada</label><input type="date" value="${p.entrada}" onchange="rotData(${m.n},'${esc(p.nome).replace(/'/g,"\\'")}',this.value)" style="${p.salva?'':'color:#999'}"></div><div><label>Saída (auto)</label><input value="${br(p.saida)}" disabled style="color:var(--laranja);font-weight:700;background:#fff7f0"></div></div>
           ${p.salva?`<a href="#" class="muted" style="font-size:12px" onclick="rotData(${m.n},'${esc(p.nome).replace(/'/g,"\\'")}','');return false">limpar esta data</a>`:''}</div>`; }).join('')}
       </div>`;
