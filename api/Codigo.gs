@@ -17,7 +17,8 @@ var IDS = {
 var SAL = 'lorenzetti-app:';
 var USERS = {
   hugo:    { nome: 'Hugo',    hash: 'HASH_HUGO',    admin: true },
-  gustavo: { nome: 'Gustavo', hash: 'HASH_GUSTAVO', admin: false }
+  gustavo: { nome: 'Gustavo', hash: 'HASH_GUSTAVO', admin: false },
+  rui:     { nome: 'Rui',     hash: 'HASH_RUI',     admin: false, ver: true } // só vê, não lança
 };
 
 var TZ = 'America/Cuiaba';
@@ -75,8 +76,9 @@ function doPost(e) {
   var u = auth_(req.u, req.p);
   if (!u) return json_({ ok: false, erro: 'Usuário ou PIN errado' });
   try {
-    if (req.a === 'login') return json_({ ok: true, nome: u.nome, admin: u.admin });
+    if (req.a === 'login') return json_({ ok: true, nome: u.nome, admin: u.admin, ver: u.ver });
     if (req.a === 'dados') return json_({ ok: true, dados: dados_(u) });
+    if (u.ver) return json_({ ok: false, erro: 'Usuário só de consulta: não pode lançar' });
     if (req.a === 'sync')  return json_(sync_(req.itens || [], u));
     if (req.a === 'apagar')   return json_(apagar_(req.id, u));
     if (req.a === 'corrigir') return json_(corrigir_(req.id, req.d, u));
@@ -95,7 +97,7 @@ function auth_(u, p) {
   if (falhas >= 10) return null; // trava 1 hora depois de 10 PINs errados
   var h = Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, SAL + u + ':' + String(p || ''), Utilities.Charset.UTF_8)
     .map(function (b) { return ('0' + (b & 255).toString(16)).slice(-2); }).join('');
-  if (h === x.hash) return { id: u, nome: x.nome, admin: !!x.admin };
+  if (h === x.hash) return { id: u, nome: x.nome, admin: !!x.admin, ver: !!x.ver };
   cache.put(kf, String(falhas + 1), 3600);
   return null;
 }
