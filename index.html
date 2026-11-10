@@ -103,7 +103,7 @@ td.n,th.n{text-align:right}
 <script>
 /* ======= configuração ======= */
 const API = 'https://script.google.com/macros/s/AKfycbwY3RA38GPBgCJ4UZjjwriIR1XyGTsPuZ1mBAuUJ_TNuZuF4nQg7P_q68GT8okeYCZd/exec';
-const VERSAO = '2.3';
+const VERSAO = '2.4';
 
 /* ======= estado ======= */
 const LS = {
@@ -463,7 +463,7 @@ function rotSalvar(){
 /* ---- Forragem: altura × densidade → capacidade ---- */
 let forMod = null, forEpoca = 'Águas';
 const PER = {'Águas':30, 'Seca':150};
-function calcFor(area, alt, dens, apr, per){ const massa=alt*dens, aprov=massa*area*apr/100, cons=dados.rot.consumo||11.25, cap= per>0? aprov/(cons*per) : 0; return {massa, aprov, cap, uaha: area>0? cap/area : 0}; }
+function calcFor(area, alt, dens, apr, per){ const massa=alt*dens, aprov=massa*area*apr/100, cons=dados.rot.consumo||9.64, cap= per>0? aprov/(cons*per) : 0; return {massa, aprov, cap, uaha: area>0? cap/area : 0}; }
 function rotForragem(){
   const ms = modulos(); if(!forMod) forMod = (ms.find(m=>(dados.rot.lotes[String(m.n)]||[]).length)||ms[0]).n;
   const m = ms.find(x=>x.n==forMod) || ms[0];
@@ -472,7 +472,7 @@ function rotForragem(){
   let h = `<div class="card"><label>Módulo</label><select onchange="forMod=this.value;rotForragem()">${opts(ms.map(x=>[x.n,'Módulo '+x.n]), m.n)}</select>
     <label>Época</label>${seg('fEpoca',[['Águas','Águas (30 dias)'],['Seca','Seca (150 dias)']],forEpoca,'mudaEpoca')}
     ${campoData('fDataMed')}
-    <div class="status">Consumo: 2,5% do peso vivo = ${fmt(dados.rot.consumo||11.25,2)} kg MS por UA por dia. Capacidade = forragem aproveitável ÷ (consumo × período).</div></div>`;
+    <div class="status">Consumo (conta da MS): 450 kg × (1,5% ÷ FDN 70%) = ${fmt(dados.rot.consumo||9.64,2)} kg MS por UA por dia. Capacidade = forragem aproveitável ÷ (consumo × período).</div></div>`;
   m.pastos.forEach((p,i)=>{
     const u = med.ult[m.n+'||'+p[0]] || {};
     const area = u.area || (dados.rot.areaUtil||{})[p[0]] || '';
