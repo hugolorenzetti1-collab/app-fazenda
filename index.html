@@ -52,6 +52,11 @@ table{width:100%;border-collapse:collapse;font-size:14px}
 td,th{padding:7px 4px;border-bottom:1px solid #eee;text-align:left;vertical-align:top}
 th{color:var(--cinza);font-weight:600;font-size:12px}
 td.n,th.n{text-align:right}
+table.lis{table-layout:fixed}
+table.lis th:first-child{width:32%}
+table.lis th:last-child{width:17%}
+table.lis td{vertical-align:middle}
+table.lis input{padding:9px 6px;text-align:center;min-width:0}
 .rolar{overflow-x:auto;margin:0 -14px;padding:0 14px}
 .rolar table{min-width:760px;font-size:13px}
 .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#222;color:#fff;padding:12px 18px;border-radius:10px;z-index:3000;max-width:90%;font-size:15px;display:none}
@@ -103,7 +108,7 @@ td.n,th.n{text-align:right}
 <script>
 /* ======= configuração ======= */
 const API = 'https://script.google.com/macros/s/AKfycbwY3RA38GPBgCJ4UZjjwriIR1XyGTsPuZ1mBAuUJ_TNuZuF4nQg7P_q68GT8okeYCZd/exec';
-const VERSAO = '2.7';
+const VERSAO = '2.8';
 
 /* ======= estado ======= */
 const LS = {
@@ -405,9 +410,9 @@ TELAS.rot = (aba) => {
   if(!dados){ app.innerHTML = semDados(); return; }
   if(aba) abaRot=aba;
   if(!ROT || !rotMudou.size) rotCopia();
-  app.innerHTML = abas('abR',[['manejo','Manejo'],['forragem','Forragem'],['resumo','Resumo'],['painel','Painel']],abaRot,'') + '<div id="rotC"></div>';
-  document.querySelectorAll('#abR button').forEach((b,i)=>b.onclick=()=>ir('rot',['manejo','forragem','resumo','painel'][i]));
-  if(abaRot==='manejo') rotManejo(); else if(abaRot==='forragem') rotForragem(); else if(abaRot==='resumo') $('#rotC').innerHTML=rotResumo(dados.rot.datas, dados.rot.lotes); else $('#rotC').innerHTML=rotPainel();
+  app.innerHTML = abas('abR',[['manejo','Manejo'],['lista','Lista'],['forragem','Forragem'],['resumo','Resumo'],['painel','Painel']],abaRot,'') + '<div id="rotC"></div>';
+  document.querySelectorAll('#abR button').forEach((b,i)=>b.onclick=()=>ir('rot',['manejo','lista','forragem','resumo','painel'][i]));
+  if(abaRot==='manejo') rotManejo(); else if(abaRot==='lista') rotLista(); else if(abaRot==='forragem') rotForragem(); else if(abaRot==='resumo') $('#rotC').innerHTML=rotResumo(dados.rot.datas, dados.rot.lotes); else $('#rotC').innerHTML=rotPainel();
 };
 function rotAlertas(datas, lotes){
   const al=[];
@@ -460,6 +465,55 @@ function rotSalvar(){
   rotMudou=new Set(); ROT=null;
   toast(n+' módulo(s) salvo(s)'+(navigator.onLine?' — enviando…':' na fila'));
   ir('rot','manejo'); if(navigator.onLine) sincronizar(true);
+}
+
+/* ---- Lista: todos os pastos numa tela só (altura e densidade), igual à aba AREA da MS ---- */
+let lisEp = 'Águas';
+function lisGrupos(){
+  const au = dados.rot.areaUtil||{};
+  const g = modulos().map(m=>({n:m.n, t:'Módulo '+m.n, ps:m.pastos.map(p=>p[0])}));
+  const sm = (dados.rot.semModulo||[]).filter(p=>au[p]>0); if(sm.length) g.push({n:0, t:'Sem módulo', ps:sm});
+  return g;
+}
+function rotLista(){
+  const med = dados.rot.med || {ult:{},hist:[]}, au = dados.rot.areaUtil||{};
+  let h = `<div class="card"><label>Época</label>${seg('lEp',[['Águas','Águas'],['Seca','Seca']],lisEp,'lisEpoca')}
+    <div class="grade" style="gap:8px"><div><label>Dias de pastejo</label><input type="number" inputmode="numeric" id="lDias" value="${PER[lisEp]}" oninput="lisCalc()"></div>
+    <div><label>Eficiência de pastejo (%)</label><input type="number" inputmode="decimal" id="lEf" value="${LS.get('eficiencia',50)}" oninput="lisCalc()"></div></div>
+    ${campoData('lData')}
+    <div class="status">Lance só a altura (e a densidade, se mudou) dos pastos medidos. Área = área efetiva do cadastro (área total × AEP). <span id="lCons"></span></div></div>`;
+  lisGrupos().forEach(g=>{
+    h += `<div class="card"><div class="linha" style="justify-content:space-between;margin-bottom:6px"><h3 style="margin:0">${g.t}</h3><b id="lTot${g.n}" style="font-size:14px"></b></div>
+    <table class="lis"><tr><th>Pasto</th><th>Altura (cm)</th><th>Densidade</th><th class="n">UA</th></tr>${g.ps.map(p=>{ const u = med.ult[g.n+'||'+p] || {};
+      return `<tr class="lr" data-m="${g.n}" data-p="${esc(p)}"><td><b>${esc(p.replace(/^PASTO\s+/,''))}</b><br><span class="muted" style="font-size:12px">${fmt(au[p]||0,1)} ha</span></td>
+      <td><input class="lh" type="number" inputmode="decimal" placeholder="${u.altura||''}" oninput="lisCalc()"></td>
+      <td><input class="ld" type="number" inputmode="decimal" value="${u.densidade||LS.get('densidade','')}" oninput="lisCalc()"></td>
+      <td class="n lc"></td></tr>`; }).join('')}</table></div>`;
+  });
+  $('#rotC').innerHTML = h; lisCalc();
+  $('#barra').innerHTML = `<div class="barra"><button class="btn" onclick="salvaLista()">Salvar medições</button></div>`;
+}
+function lisEpoca(v){ lisEp = v; $('#lDias').value = PER[v]; lisCalc(); }
+function lisCalc(){
+  const med = dados.rot.med || {ult:{}}, au = dados.rot.areaUtil||{}, dias = +val('lDias')||0, ef = +val('lEf')||0, tot = {}, novo = {};
+  document.querySelectorAll('tr.lr').forEach(tr=>{ const m = tr.dataset.m, p = tr.dataset.p, alt = +tr.querySelector('.lh').value||0, dens = +tr.querySelector('.ld').value||0, c = tr.querySelector('.lc'), u = med.ult[m+'||'+p];
+    if(alt && dens && dias && ef){ const r = calcFor(au[p]||0, alt, dens, ef, dias, lisEp); c.innerHTML = `<b>${fmt(r.cap,1)}</b><br><span class="muted" style="font-size:11px">${fmt(r.uaha,2)}/ha</span>`; tot[m] = (tot[m]||0)+r.cap; novo[m] = 1; }
+    else if(u){ c.innerHTML = `<span class="muted">${fmt(u.cap,1)}<br><span style="font-size:11px">${br(u.data).slice(0,5)}</span></span>`; tot[m] = (tot[m]||0)+u.cap; }
+    else c.innerHTML = '<span class="muted">—</span>'; });
+  lisGrupos().forEach(g=>{ const e = $('#lTot'+g.n); if(e) e.textContent = tot[g.n] ? fmt(tot[g.n],1)+' UA' : ''; });
+  const e = $('#lCons'); if(e) e.textContent = 'Consumo '+lisEp.toLowerCase()+': '+fmt(consEp(lisEp),2)+' kg MS por UA por dia.';
+}
+function salvaLista(){
+  const au = dados.rot.areaUtil||{}, data = val('lData'), dias = +val('lDias')||0, ef = +val('lEf')||0; let n = 0, falta = '';
+  if(!dias || !ef) return toast('Preencha os dias de pastejo e a eficiência');
+  const L = [];
+  document.querySelectorAll('tr.lr').forEach(tr=>{ const alt = +tr.querySelector('.lh').value||0, dens = +tr.querySelector('.ld').value||0, p = tr.dataset.p; if(!alt) return;
+    if(!dens){ falta = p; return; }
+    L.push({data, modulo:+tr.dataset.m, pasto:p, epoca:lisEp, area:au[p]||0, altura:alt, periodo:dias, densidade:dens, aprov:ef}); });
+  if(falta) return toast('Falta a densidade do '+falta);
+  if(!L.length) return toast('Lance a altura de pelo menos um pasto');
+  L.forEach(d=>lancar('medicao', d)); LS.set('eficiencia', ef); LS.set('densidade', L[L.length-1].densidade);
+  toast(L.length+' medição(ões) salva(s)'+(navigator.onLine?' — enviando…':' na fila')); ir('rot','lista'); if(navigator.onLine) sincronizar(true);
 }
 
 /* ---- Forragem: altura × densidade → capacidade ---- */
