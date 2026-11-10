@@ -103,7 +103,7 @@ td.n,th.n{text-align:right}
 <script>
 /* ======= configuração ======= */
 const API = 'https://script.google.com/macros/s/AKfycbwY3RA38GPBgCJ4UZjjwriIR1XyGTsPuZ1mBAuUJ_TNuZuF4nQg7P_q68GT8okeYCZd/exec';
-const VERSAO = '2.5';
+const VERSAO = '2.6';
 
 /* ======= estado ======= */
 const LS = {
@@ -463,7 +463,8 @@ function rotSalvar(){
 /* ---- Forragem: altura × densidade → capacidade ---- */
 let forMod = null, forEpoca = 'Águas';
 const PER = {'Águas':30, 'Seca':150};
-function calcFor(area, alt, dens, apr, per){ const massa=alt*dens, aprov=massa*area*apr/100, cons=dados.rot.consumo||9.64, cap= per>0? aprov/(cons*per) : 0; return {massa, aprov, cap, uaha: area>0? cap/area : 0}; }
+function consEp(ep, per){ if(ep!=='Águas' && ep!=='Seca') ep = per>=150?'Seca':'Águas'; return (dados.rot.consumoEp||{})[ep] || (ep==='Seca'?9.64:11.25); }
+function calcFor(area, alt, dens, apr, per, ep){ const massa=alt*dens, aprov=massa*area*apr/100, cons=consEp(ep||forEpoca, per), cap= per>0? aprov/(cons*per) : 0; return {massa, aprov, cap, uaha: area>0? cap/area : 0}; }
 function rotForragem(){
   const ms = modulos(); if(!forMod) forMod = (ms.find(m=>(dados.rot.lotes[String(m.n)]||[]).length)||ms[0]).n;
   const m = ms.find(x=>x.n==forMod) || ms[0];
@@ -472,7 +473,7 @@ function rotForragem(){
   let h = `<div class="card"><label>Módulo</label><select onchange="forMod=this.value;rotForragem()">${opts(ms.map(x=>[x.n,'Módulo '+x.n]), m.n)}</select>
     <label>Época</label>${seg('fEpoca',[['Águas','Águas (30 dias)'],['Seca','Seca (150 dias)']],forEpoca,'mudaEpoca')}
     ${campoData('fDataMed')}
-    <div class="status">Consumo (conta da MS): 450 kg × (1,5% ÷ FDN 70%) = ${fmt(dados.rot.consumo||9.64,2)} kg MS por UA por dia. Capacidade = forragem aproveitável ÷ (consumo × período).</div></div>`;
+    <div class="status">Consumo (conta da MS): 450 kg × 1,5% ÷ FDN. Águas FDN 60% = ${fmt(consEp('Águas'),2)} · Seca FDN 70% = ${fmt(consEp('Seca'),2)} kg MS por UA por dia. Capacidade = forragem aproveitável ÷ (consumo × período).</div></div>`;
   m.pastos.forEach((p,i)=>{
     const u = med.ult[m.n+'||'+p[0]] || {};
     const area = u.area || (dados.rot.areaUtil||{})[p[0]] || '';
@@ -524,7 +525,7 @@ function salvaForragem(){
   if(!n) return toast('Lance a altura de pelo menos um pasto');
   toast(n+' medição(ões) salva(s)'+(navigator.onLine?' — enviando…':' na fila')); ir('rot','forragem'); if(navigator.onLine) sincronizar(true);
 }
-APLICA.medicao = (D,d) => { if(!D.rot.med) D.rot.med={ult:{},hist:[]}; const r=calcFor(+d.area,+d.altura,+d.densidade,+d.aprov,+d.periodo); const x=Object.assign({}, d, {modulo:String(d.modulo), massa:r.massa, aprovKg:r.aprov, cap:r.cap, uaha:r.uaha, user:user.nome}); D.rot.med.ult[x.modulo+'||'+d.pasto]=x; D.rot.med.hist.unshift(x); };
+APLICA.medicao = (D,d) => { if(!D.rot.med) D.rot.med={ult:{},hist:[]}; const r=calcFor(+d.area,+d.altura,+d.densidade,+d.aprov,+d.periodo,d.epoca); const x=Object.assign({}, d, {modulo:String(d.modulo), massa:r.massa, aprovKg:r.aprov, cap:r.cap, uaha:r.uaha, user:user.nome}); D.rot.med.ult[x.modulo+'||'+d.pasto]=x; D.rot.med.hist.unshift(x); };
 
 function rotResumo(datas, lotes){
   return modulos().map(m=>{ const c=calcModulo(m,datas,lotes);
