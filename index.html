@@ -103,7 +103,7 @@ td.n,th.n{text-align:right}
 <script>
 /* ======= configuração ======= */
 const API = 'https://script.google.com/macros/s/AKfycbwY3RA38GPBgCJ4UZjjwriIR1XyGTsPuZ1mBAuUJ_TNuZuF4nQg7P_q68GT8okeYCZd/exec';
-const VERSAO = '2.4';
+const VERSAO = '2.5';
 
 /* ======= estado ======= */
 const LS = {
@@ -273,7 +273,7 @@ const TELAS = {};
 TELAS.login = () => {
   app.innerHTML = `<div class="card" style="margin-top:30px;text-align:center">
     <img src="icon-512.png" style="width:120px;height:120px;border-radius:50%"><h2>App da Fazenda</h2>
-    <label style="text-align:left">Usuário</label><select id="lU"><option value="hugo">Hugo</option><option value="gustavo">Gustavo</option><option value="rui">Rui</option></select>
+    <label style="text-align:left">Usuário</label><select id="lU"><option value="hugo">Hugo</option><option value="gustavo">Gustavo</option><option value="rui">Rui</option><option value="athila">Athila</option></select>
     <label style="text-align:left">PIN</label><input id="lP" type="password" inputmode="numeric" maxlength="8" autocomplete="off">
     <div style="height:14px"></div><button class="btn prim full" onclick="entrar()">Entrar</button>
     <div class="status">Precisa de internet só no primeiro acesso.</div></div>`;
@@ -282,7 +282,7 @@ async function entrar(){
   const u=val('lU'), p=val('lP');
   if(!p) return toast('Digite o PIN');
   try{
-    user = {u, p, nome: {hugo:'Hugo',gustavo:'Gustavo',rui:'Rui'}[u]};
+    user = {u, p, nome: {hugo:'Hugo',gustavo:'Gustavo',rui:'Rui',athila:'Athila'}[u]};
     const j = await api({a:'login'});
     user.nome = j.nome; user.admin = !!j.admin; user.ver = !!j.ver; LS.set('user', user);
     toast('Bem-vindo, '+j.nome); ir('home'); sincronizar(true);
