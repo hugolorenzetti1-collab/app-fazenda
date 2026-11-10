@@ -103,7 +103,7 @@ td.n,th.n{text-align:right}
 <script>
 /* ======= configuração ======= */
 const API = 'https://script.google.com/macros/s/AKfycbwY3RA38GPBgCJ4UZjjwriIR1XyGTsPuZ1mBAuUJ_TNuZuF4nQg7P_q68GT8okeYCZd/exec';
-const VERSAO = '2.6';
+const VERSAO = '2.7';
 
 /* ======= estado ======= */
 const LS = {
@@ -145,7 +145,8 @@ const IC = {
   cocho:'<svg viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="14" rx="1"/><path d="M12 5v14"/><path d="M4 12h8"/></svg>',
   maquina:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="8"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2"/></svg>',
   mapa:'<svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16"/><path d="M4 9h16M4 14h16M9 4v16M14 4v16"/></svg>',
-  painel:'<svg viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>'
+  painel:'<svg viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>',
+  log:'<svg viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18" rx="1"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>'
 };
 
 /* ======= navegação ======= */
@@ -314,6 +315,7 @@ TELAS.home = () => {
     ${t('morte','Morte','morte')}${t('contagem','Contagem','contagem')}
     ${t('bebedouro','Bebedouro','bebedouro')}${t('cocho','Cocho / sal','cocho')}
     ${t('maquina','Máquinas','maquinas')}${t('mapa','Mapa','mapa')}
+    ${t('log','Log','log')}
   </div>
   <div style="height:12px"></div>
   <div class="tile" style="min-height:64px;flex-direction:row" onclick="ir('painel')">${IC.painel}<span>Painel</span></div>
@@ -784,6 +786,31 @@ function resumo(x){ const d=x.d||{}; const mf=()=>[(+d.machos?d.machos+' M':''),
   case 'maquina': return d.maquina+' · '+d.tipo;
   case 'medicao': return d.pasto+' · '+d.altura+' cm';
   case 'maq_nova': return d.nome; } return ''; }
+/* =================== LOG (quem lançou, quando e o quê) =================== */
+let logF = {user:'', tipo:'', txt:'', n:100};
+const dh = iso => iso ? new Date(iso).toLocaleString('pt-BR',{timeZone:'America/Cuiaba',day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '—';
+function logDet(d){ return Object.keys(d||{}).filter(k=>d[k]!==''&&d[k]!=null&&typeof d[k]!=='object').map(k=>`<b>${esc(CAMPOS[k]||k)}:</b> ${esc(k==='data'?br(String(d[k])):d[k])}`).join(' · '); }
+TELAS.log = async (rec) => {
+  let L = LS.get('log', null);
+  if(!rec && navigator.onLine){ app.innerHTML = '<h2>Log</h2><div class="card"><span class="muted">Carregando…</span></div>';
+    try{ const j = await api({a:'log'}); L = j.log; LS.set('log', L); LS.set('logEm', Date.now()); }catch(e){ toast(e.message, 5000); } }
+  if(tela!=='log') return;
+  L = L || [];
+  const us = [...new Set(L.map(x=>x.user))].sort(), ts = [...new Set(L.map(x=>x.tipo))].sort();
+  const q = logF.txt.trim().toLowerCase();
+  const F = L.filter(x=>(!logF.user||x.user===logF.user)&&(!logF.tipo||x.tipo===logF.tipo)&&(!q||JSON.stringify(x.d).toLowerCase().includes(q)||(NOMES[x.tipo]||x.tipo).toLowerCase().includes(q)));
+  const em = LS.get('logEm', null);
+  app.innerHTML = `<h2>Log de lançamentos</h2>
+  <div class="card">
+    <label>Quem lançou</label><select onchange="logF.user=this.value;logF.n=100;TELAS.log(1)"><option value="">Todos</option>${opts(us, logF.user)}</select>
+    <label>Tipo</label><select onchange="logF.tipo=this.value;logF.n=100;TELAS.log(1)"><option value="">Todos</option>${opts(ts.map(t=>[t,NOMES[t]||t]), logF.tipo)}</select>
+    <label>Procurar (pasto, obs., etc.)</label><input id="logQ" value="${esc(logF.txt)}" onchange="logF.txt=this.value;logF.n=100;TELAS.log(1)" placeholder="ex.: 3A">
+    <div class="status">${F.length} lançamento(s)${em?' · atualizado '+dh(new Date(em).toISOString()):''}${navigator.onLine?'':' · offline (mostrando o último carregado)'}</div>
+  </div>
+  <div class="card">${F.length? '<table>'+F.slice(0,logF.n).map(x=>`<tr><td style="white-space:nowrap">${dh(x.cel)}<br><span class="muted">${esc(x.user)}</span></td><td><b>${esc(NOMES[x.tipo]||x.tipo)}</b>${x.sit!=='OK'?` <span class="tag t-cz">${esc(x.sit)}</span>`:''}<br>${esc(resumo(x))}<div class="muted" style="font-size:12px;margin-top:3px">${logDet(x.d)}</div>${x.rec&&x.rec.slice(0,16)!==x.cel.slice(0,16)?`<div class="muted" style="font-size:12px">chegou na planilha ${dh(x.rec)}</div>`:''}</td></tr>`).join('')+'</table>' : '<span class="muted">Nenhum lançamento.</span>'}
+  ${F.length>logF.n?`<button class="btn full" style="margin-top:10px" onclick="logF.n+=200;TELAS.log(1)">Mostrar mais (${F.length-logF.n})</button>`:''}</div>`;
+};
+
 TELAS.fila = () => {
   const meus = dados && dados.meus ? dados.meus : [];
   app.innerHTML = `<h2>Fila (${fila.length})</h2>
