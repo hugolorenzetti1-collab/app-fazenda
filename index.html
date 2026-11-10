@@ -108,7 +108,7 @@ table.lis input{padding:9px 6px;text-align:center;min-width:0}
 <script>
 /* ======= configuração ======= */
 const API = 'https://script.google.com/macros/s/AKfycbwY3RA38GPBgCJ4UZjjwriIR1XyGTsPuZ1mBAuUJ_TNuZuF4nQg7P_q68GT8okeYCZd/exec';
-const VERSAO = '2.8';
+const VERSAO = '2.9';
 
 /* ======= estado ======= */
 const LS = {
@@ -156,7 +156,7 @@ const IC = {
 
 /* ======= navegação ======= */
 let tela = 'home';
-function ir(t, arg){ if(user && user.ver && !['home','login','painel','mapa'].includes(t)){ t='painel'; arg=undefined; } tela=t; $('#barra').innerHTML=''; $('#btVoltar').style.display = (t==='home'||t==='login')?'none':'block'; window.scrollTo(0,0); (TELAS[t]||TELAS.home)(arg); if(t!=='home') history.pushState({t},''); }
+function ir(t, arg){ if(t!=='mapa' && typeof gpsPara==='function' && tela==='mapa') gpsPara(); if(user && user.ver && !['home','login','painel','mapa'].includes(t)){ t='painel'; arg=undefined; } tela=t; $('#barra').innerHTML=''; $('#btVoltar').style.display = (t==='home'||t==='login')?'none':'block'; window.scrollTo(0,0); (TELAS[t]||TELAS.home)(arg); if(t!=='home') history.pushState({t},''); }
 window.addEventListener('popstate', ()=>{ if(tela!=='home' && tela!=='login') ir('home'); });
 
 /* ======= API ======= */
@@ -950,9 +950,11 @@ function gadoResumoPainel(){
 function filtroPainelGado(v){ filtroFaz=v; gadoResumoPainel(); }
 
 /* =================== MAPA =================== */
-let MAPA=null, GEO=null;
+let MAPA=null, GEO=null, GPSW=null, EU=null, EUR=null, SEGUIR=false;
+function gpsPara(){ if(GPSW!=null){ try{ navigator.geolocation.clearWatch(GPSW); }catch(e){} GPSW=null; } EU=null; EUR=null; SEGUIR=false; }
+function mapaEu(){ if(!EU) return toast('Ainda sem sinal do GPS. Confira se a localização do celular está ligada e liberada para o app.', 5000); SEGUIR=true; MAPA.setView(EU.getLatLng(), Math.max(MAPA.getZoom(),16)); toast('Mapa seguindo você. Arraste o mapa para soltar.'); }
 TELAS.mapa = async () => {
-  app.innerHTML = `<div class="linha" style="justify-content:space-between;margin-bottom:8px"><h2 style="margin:0">Mapa</h2><button class="btn peq" onclick="baixarMapa()">Baixar mapa offline</button></div><div id="mapa"></div>
+  app.innerHTML = `<div class="linha" style="justify-content:space-between;margin-bottom:8px"><h2 style="margin:0">Mapa</h2><div class="linha" style="gap:6px"><button class="btn peq" onclick="mapaEu()">◎ Onde estou</button><button class="btn peq" onclick="baixarMapa()">Baixar offline</button></div></div><div id="mapa"></div>
    <div class="muted" style="margin-top:6px"><span class="tag" style="background:#CF6B33;color:#fff">semi</span> <span class="tag" style="background:#2E7D4F;color:#fff">rotacionado com gado</span> <span class="tag" style="background:#cfd8cc">vazio</span></div>`;
   if(!GEO){ try{ GEO = await (await fetch('pastos.json')).json(); }catch(e){ app.insertAdjacentHTML('beforeend','<div class="card t-vm">Mapa não carregou.</div>'); return; } }
   if(MAPA){ MAPA.remove(); MAPA=null; }
@@ -978,7 +980,11 @@ TELAS.mapa = async () => {
   MAPA.fitBounds(lay.getBounds());
   const rotulos = () => { const on = MAPA.getZoom() >= 15; lay.eachLayer(l => { if(l.getTooltip()){ on ? l.openTooltip() : l.closeTooltip(); } }); };
   MAPA.on('zoomend', rotulos); rotulos();
-  if('geolocation' in navigator){ navigator.geolocation.getCurrentPosition(pos=>{ L.circleMarker([pos.coords.latitude,pos.coords.longitude],{radius:7,color:'#fff',weight:2,fillColor:'#1a73e8',fillOpacity:1}).addTo(MAPA).bindPopup('Você está aqui'); },()=>{}, {enableHighAccuracy:true,timeout:8000}); }
+  gpsPara(); MAPA.on('dragstart', ()=>{ SEGUIR=false; });
+  if('geolocation' in navigator){ GPSW = navigator.geolocation.watchPosition(pos=>{ if(!MAPA || tela!=='mapa') return; const ll=[pos.coords.latitude,pos.coords.longitude], ac=pos.coords.accuracy||0;
+    if(!EU){ EUR=L.circle(ll,{radius:ac,color:'#1a73e8',weight:1,fillColor:'#1a73e8',fillOpacity:.12,interactive:false}).addTo(MAPA); EU=L.circleMarker(ll,{radius:7,color:'#fff',weight:2,fillColor:'#1a73e8',fillOpacity:1}).addTo(MAPA).bindPopup('Você está aqui'); }
+    else { EU.setLatLng(ll); EUR.setLatLng(ll); EUR.setRadius(ac); }
+    if(SEGUIR) MAPA.panTo(ll,{animate:false}); }, ()=>{}, {enableHighAccuracy:true, maximumAge:5000, timeout:30000}); }
 };
 async function baixarMapa(){
   if(!navigator.onLine) return toast('Precisa de internet para baixar');
