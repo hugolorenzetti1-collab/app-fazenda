@@ -112,7 +112,7 @@ table.lis input{padding:9px 6px;text-align:center;min-width:0}
 <script>
 /* ======= configuração ======= */
 const API = 'https://script.google.com/macros/s/AKfycbwY3RA38GPBgCJ4UZjjwriIR1XyGTsPuZ1mBAuUJ_TNuZuF4nQg7P_q68GT8okeYCZd/exec';
-const VERSAO = '2.18';
+const VERSAO = '2.19';
 
 /* ======= estado ======= */
 const LS = {
@@ -371,13 +371,33 @@ let abaTrato = 'trato';
 TELAS.trato = (aba) => {
   if(aba) abaTrato = aba;
   if(!dados){ app.innerHTML = semDados(); return; }
-  app.innerHTML = abas('abT',[['painel','📊 Painel'],['giro','🐂 Giro 25'],['trato','+ Trato']],abaTrato,"ir.bind(null,'trato')")
+  app.innerHTML = abas('abT',[['painel','📊 Painel'],['giro','🐂 Giro 25'],['trato','+ Trato'],['lanc','📋 Lançados']],abaTrato,"ir.bind(null,'trato')")
     + '<div id="tratoC"></div>';
-  document.querySelectorAll('#abT button').forEach((b,i)=>b.onclick=()=>ir('trato',['painel','giro','trato'][i]));
+  document.querySelectorAll('#abT button').forEach((b,i)=>b.onclick=()=>ir('trato',['painel','giro','trato','lanc'][i]));
   if(abaTrato==='painel') $('#tratoC').innerHTML = painelTrato();
   else if(abaTrato==='giro') $('#tratoC').innerHTML = tabelaGiro();
+  else if(abaTrato==='lanc') tratoLanc();
   else formTrato();
 };
+// Tratos lançados, para conferir: por dia, com total, filtro por pasto e período.
+let tlF = {pasto:'', dias:'7'};
+function tratoLanc(){
+  const R = dados.semi.recentes || [], H = hojeISO();
+  const pastos = [...new Set(R.map(r=>String(r.pasto).toUpperCase().trim()))].sort((a,b)=>a.localeCompare(b,'pt-BR',{numeric:true}));
+  const L = R.filter(r=>(!tlF.pasto || String(r.pasto).toUpperCase().trim()===tlF.pasto) && (tlF.dias==='0' || diasEntre(r.data,H) < +tlF.dias));
+  const dias = {}; L.forEach(r=>{ (dias[r.data] = dias[r.data]||[]).push(r); });
+  const tot = L.reduce((s,r)=>s+(+r.kg||0),0), nd = Object.keys(dias).length, velho = R.length ? R[R.length-1].data : '';
+  let h = `<div class="card"><label>Período</label>${seg('tlDias',[['1','Hoje'],['7','7 dias'],['30','30 dias'],['0','Tudo']],tlF.dias,'tlMuda')}
+    <label>Pasto</label><select id="tlPasto" onchange="tlMuda()"><option value="">Todos</option>${pastos.map(p=>`<option ${p===tlF.pasto?'selected':''}>${esc(p)}</option>`).join('')}</select></div>
+    <div class="kpis k3">${kpi('Tratos',fmt(L.length))}${kpi('Total',fmt(tot)+' kg')}${kpi('Média por dia',nd?fmt(Math.round(tot/nd))+' kg':'—')}</div>`;
+  Object.keys(dias).sort().reverse().forEach(d=>{ const x = dias[d].slice().sort((a,b)=>String(a.pasto).localeCompare(String(b.pasto),'pt-BR',{numeric:true})), t = x.reduce((s,r)=>s+(+r.kg||0),0);
+    h += `<div class="card"><div class="linha" style="justify-content:space-between;margin-bottom:6px"><h3 style="margin:0">${br(d)}</h3><b style="font-size:14px">${x.length} trato${x.length===1?'':'s'} · ${fmt(t)} kg</b></div>
+      <table><tr><th>Pasto</th><th class="n">kg</th><th>Quem</th></tr>${x.map(r=>`<tr><td><b>${esc(r.pasto)}</b></td><td class="n">${fmt(r.kg)}</td><td>${esc(r.quem||'')}</td></tr>`).join('')}</table></div>`; });
+  if(!L.length) h += '<p class="muted" style="text-align:center;margin-top:20px">Nenhum trato nesse filtro.</p>';
+  h += `<p class="muted">Mostra os últimos ${fmt(R.length)} tratos da planilha${velho?' (desde '+br(velho)+')':''}. Trato ainda na fila já aparece aqui.</p>`;
+  $('#tratoC').innerHTML = h;
+}
+function tlMuda(){ tlF = {pasto: val('tlPasto'), dias: val('tlDias')}; tratoLanc(); }
 function painelTrato(){
   const P = dados.semi.painel || [];
   const bloco = (titulo, cab, vals) => { let h=`<div class="sec">${titulo}</div><div class="kpis">`; cab.forEach((c,i)=>{ if(!c || String(vals[i]||'').includes('R$') || /CUSTO/i.test(c)) return; h+=kpi(esc(c), esc(vals[i]||'—')); }); return h+'</div>'; };
