@@ -112,7 +112,7 @@ table.lis input{padding:9px 6px;text-align:center;min-width:0}
 <script>
 /* ======= configuração ======= */
 const API = 'https://script.google.com/macros/s/AKfycbwY3RA38GPBgCJ4UZjjwriIR1XyGTsPuZ1mBAuUJ_TNuZuF4nQg7P_q68GT8okeYCZd/exec';
-const VERSAO = '2.17';
+const VERSAO = '2.18';
 
 /* ======= estado ======= */
 const LS = {
@@ -144,6 +144,7 @@ function toast(msg, ms){ const t=$('#toast'); t.textContent=msg; t.style.display
 
 /* ======= ícones ======= */
 const IC = {
+  tarefas:'<svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="17" rx="2"/><path d="M9 3h6v3H9z"/><path d="M8 12l2 2 4-4"/><path d="M8 17h8"/></svg>',
   trato:'<svg viewBox="0 0 24 24"><path d="M3 10h18l-2 9H5z"/><path d="M7 10V6h10v4"/></svg>',
   rot:'<svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.3-5.6"/><path d="M20 4v5h-5"/></svg>',
   gado:'<svg viewBox="0 0 24 24"><path d="M4 9c0-2 2-3 4-3h8c2 0 4 1 4 3v3c0 2-2 4-4 4H8c-2 0-4-2-4-4z"/><path d="M7 16v3M17 16v3M3 7l2 1M21 7l-2 1"/></svg>',
@@ -230,6 +231,11 @@ APLICA.contagem = (D,d) => { D.contagens.unshift({data:d.data,local:d.local,cab:
       if(d.para){ const m=(D.rot.modulos||[]).find(x=>String(x.n)===n), ordem=m?m.pastos.map(p=>p[0]):[], idx=ordem.indexOf(d.para);
         if(idx>=0){ Object.keys(D.rot.datas).forEach(k=>{ const s=k.split('||'); if(s[0]===n && ordem.indexOf(s[1])>=idx) delete D.rot.datas[k]; }); D.rot.datas[n+'||'+d.para]=d.data; } } }
   }catch(e){} };
+APLICA.tarefa = (D,d) => { D.tarefas = D.tarefas||[]; const ag = new Date().toISOString().slice(0,16), t = D.tarefas.find(x=>x.id===d.tid);
+  if(d.acao==='nova'){ if(!t) D.tarefas.push({id:d.tid,criada:ag,por:user.nome,titulo:d.titulo,local:d.local||'',prazo:d.prazo||'',prio:d.prio||'Normal',status:'A fazer',atu:ag,atuPor:user.nome,obs:'',feita:''}); return; }
+  if(!t) return;
+  if(d.acao==='excluir'){ D.tarefas = D.tarefas.filter(x=>x.id!==d.tid); return; }
+  if(d.acao==='status'){ t.status=d.status; t.atu=ag; t.atuPor=user.nome; if(d.obs!=null) t.obs=d.obs; t.feita = d.status==='Feito'?ag:''; } };
 APLICA.bebedouro = (D,d) => { const u=D.bebedouros[d.local]; if(!u||u.data<=d.data) D.bebedouros[d.local]={data:d.data,obs:d.obs}; D.bebHist.unshift({data:d.data,local:d.local,user:user.nome}); };
 APLICA.cocho = (D,d) => { D.ultCocho[d.modulo]={data:d.data,produto:d.produto,sacos:+d.sacos,kg:+d.kg}; D.cochoHist.unshift({data:d.data,modulo:d.modulo,pasto:d.pasto,produto:d.produto,sacos:+d.sacos,kg:+d.kg}); };
 APLICA.maquina = (D,d) => D.maqHist.unshift({data:d.data,maquina:d.maquina,tipo:d.tipo,horimetro:+d.horimetro,litros:+d.litros,desc:d.desc,user:user.nome});
@@ -334,7 +340,7 @@ TELAS.home = () => {
     ${t('morte','Morte','morte')}${t('contagem','Contagem','contagem')}
     ${t('bebedouro','Bebedouro','bebedouro')}${t('cocho','Cocho / sal','cocho')}
     ${t('maquina','Máquinas','maquinas')}${t('mapa','Mapa','mapa')}
-    ${t('log','Log','log')}
+    ${t('tarefas','Tarefas'+(tarAbertas()?' ('+tarAbertas()+')':''),'tarefas')}${t('log','Log','log')}
   </div>
   <div style="height:12px"></div>
   <div class="tile" style="min-height:64px;flex-direction:row" onclick="ir('painel')">${IC.painel}<span>Painel</span></div>
@@ -509,8 +515,8 @@ function rotLista(){
     <div class="muted" style="font-size:13px;margin-bottom:8px">${lisCab(g)}</div>
     <table class="lis"><tr><th>Pasto</th><th>Altura (cm)</th><th>Densidade</th><th class="n">UA</th></tr>${g.ps.map(p=>{ const u = med.ult[g.n+'||'+p] || {};
       return `<tr class="lr" data-m="${g.n}" data-p="${esc(p)}"><td><b>${esc(p.replace(/^PASTO\s+/,''))}</b><br><span class="muted" style="font-size:12px">${fmt(au[p]||0,1)} ha</span></td>
-      <td><input class="lh" type="number" inputmode="decimal" placeholder="${u.altura||''}" oninput="lisCalc()"></td>
-      <td><input class="ld" type="number" inputmode="decimal" value="${u.densidade||LS.get('densidade','')}" oninput="lisCalc()"></td>
+      <td><input class="lh" type="number" inputmode="decimal" step="5" min="0" placeholder="${u.altura||''}" oninput="lisCalc()"></td>
+      <td><input class="ld" type="number" inputmode="decimal" step="5" min="0" value="${u.densidade||LS.get('densidade','')}" oninput="lisCalc()"></td>
       <td class="n lc"></td></tr>`; }).join('')}</table></div>`;
   });
   $('#rotC').innerHTML = h; lisCalc();
@@ -933,7 +939,7 @@ function salvaMaq(nome){
 }
 
 /* =================== FILA + CORRIGIR / APAGAR =================== */
-const NOMES = {gado:'Controle de gado',transf:'Transferência',morte:'Morte',trato:'Trato',chuva:'Chuva',mudar:'Mudar de pasto',lote:'Lote',manejo:'Rotacionado',contagem:'Contagem',bebedouro:'Bebedouro',cocho:'Cocho/sal',maquina:'Máquina',maq_nova:'Nova máquina',regras:'Regras',medicao:'Medição de forragem'};
+const NOMES = {gado:'Controle de gado',transf:'Transferência',morte:'Morte',trato:'Trato',chuva:'Chuva',mudar:'Mudar de pasto',lote:'Lote',manejo:'Rotacionado',contagem:'Contagem',bebedouro:'Bebedouro',cocho:'Cocho/sal',maquina:'Máquina',maq_nova:'Nova máquina',regras:'Regras',medicao:'Medição de forragem',tarefa:'Tarefa'};
 function resumo(x){ const d=x.d||{}; const mf=()=>[(+d.machos?d.machos+' M':''),(+d.femeas?d.femeas+' F':''),(d.qtd&&!d.machos&&!d.femeas?d.qtd+(d.sexo==='F'?' F':' M'):'')].filter(Boolean).join(' '); switch(x.tipo){
   case 'trato': return d.pasto+' · '+fmt(d.kg)+' kg';
   case 'gado': return (d.mov==='saida'?'Saída ':'Entrada ')+mf()+' · '+d.fazenda+(d.obs?' · '+d.obs:'');
@@ -946,7 +952,44 @@ function resumo(x){ const d=x.d||{}; const mf=()=>[(+d.machos?d.machos+' M':''),
   case 'cocho': return 'Módulo '+d.modulo+' · '+d.sacos+' sacos';
   case 'maquina': return d.maquina+' · '+d.tipo;
   case 'medicao': return d.pasto+' · '+d.altura+' cm';
+  case 'tarefa': return d.acao==='nova' ? 'Nova: '+d.titulo : d.acao==='excluir' ? 'Excluiu: '+(d.titulo||'') : (d.titulo||'')+' → '+d.status;
   case 'maq_nova': return d.nome; } return ''; }
+/* =================== TAREFAS (quadro A fazer / Fazendo / Feito) =================== */
+let abaTar = 'A fazer', tarNova = false, tarConc = '';
+function tarAbertas(){ return dados && dados.tarefas ? dados.tarefas.filter(t=>t.status!=='Feito').length : 0; }
+function tarOrdem(a,b){ const u = x=>x.prio==='Urgente'?0:1; return u(a)-u(b) || (a.prazo||'9999').localeCompare(b.prazo||'9999') || (a.criada||'').localeCompare(b.criada||''); }
+TELAS.tarefas = (aba) => {
+  if(!dados){ app.innerHTML=semDados(); return; }
+  if(aba) abaTar = aba;
+  const T = dados.tarefas||[], H = hojeISO(), n = s => T.filter(t=>t.status===s).length;
+  const L = [['A fazer','A fazer ('+n('A fazer')+')'],['Fazendo','Fazendo ('+n('Fazendo')+')'],['Feito','Feito ('+n('Feito')+')']];
+  const lista = T.filter(t=>t.status===abaTar).sort(abaTar==='Feito' ? (a,b)=>(b.feita||'').localeCompare(a.feita||'') : tarOrdem);
+  const cartao = t => { const atr = t.prazo && t.prazo<H && t.status!=='Feito', hj = t.prazo===H && t.status!=='Feito', pode = user.admin || t.por===user.nome;
+    return `<div class="card" style="${t.prio==='Urgente'&&t.status!=='Feito'?'border-left:5px solid var(--vermelho)':''}">
+      <div style="font-weight:700;font-size:16px;white-space:pre-wrap">${esc(t.titulo)}</div>
+      <div class="linha" style="margin-top:6px;gap:6px">${t.prio==='Urgente'?'<span class="tag t-vm">Urgente</span>':''}${t.prazo?`<span class="tag ${atr?'t-vm':hj?'t-am':'t-cz'}">${atr?'Atrasada · ':hj?'Hoje · ':'Até '}${br(t.prazo)}</span>`:''}${t.local?`<span class="tag t-az">${esc(t.local)}</span>`:''}</div>
+      <div class="muted" style="font-size:12px;margin-top:6px">Passada por ${esc(t.por)} em ${br(t.criada)}${t.status==='Fazendo'?` · começou ${esc(t.atuPor)} em ${br(t.atu)}`:''}${t.status==='Feito'?` · feita por ${esc(t.atuPor)} em ${br(t.feita||t.atu)}`:''}</div>
+      ${t.obs?`<div class="status" style="margin-top:6px">Obs.: ${esc(t.obs)}</div>`:''}
+      ${tarConc===t.id ? `<label>Observação (opcional)</label><input id="tObs" placeholder="Ex.: troquei 3 lascas"><div class="linha" style="margin-top:8px"><button class="btn prim" onclick="tarStatus('${t.id}','Feito',1)">✔ Confirmar feito</button><button class="btn" onclick="tarConc='';TELAS.tarefas()">Cancelar</button></div>`
+      : `<div class="linha" style="margin-top:10px">${t.status==='A fazer'?`<button class="btn peq" onclick="tarStatus('${t.id}','Fazendo')">▶ Começar</button>`:''}${t.status!=='Feito'?`<button class="btn peq prim" onclick="tarConc='${t.id}';TELAS.tarefas()">✔ Feito</button>`:''}${t.status==='Fazendo'?`<button class="btn peq" onclick="tarStatus('${t.id}','A fazer')">↩ Voltar</button>`:''}${t.status==='Feito'?`<button class="btn peq" onclick="tarStatus('${t.id}','A fazer')">↩ Reabrir</button>`:''}${pode?`<button class="btn peq" style="margin-left:auto;border-color:var(--borda);color:#777" onclick="tarExcluir('${t.id}',this)">Excluir</button>`:''}</div>`}
+    </div>`; };
+  app.innerHTML = `<h2>Tarefas</h2>${tarNova ? `<div class="card"><label>Serviço</label><textarea id="tTit" rows="2" style="width:100%" placeholder="O que é para fazer"></textarea>
+      <label>Local / pasto</label><input id="tLocal" placeholder="Ex.: Pasto 21, curral, sede">
+      <label>Prazo (opcional)</label><input type="date" id="tPrazo">
+      <label>Prioridade</label>${seg('tPrio',[['Normal','Normal'],['Urgente','Urgente']],'Normal')}
+      <div class="linha" style="margin-top:12px"><button class="btn prim" onclick="tarSalva()">Salvar tarefa</button><button class="btn" onclick="tarNova=false;ir('tarefas')">Cancelar</button></div></div>`
+    : `<button class="btn prim full" style="margin-bottom:12px" onclick="tarNova=true;ir('tarefas')">+ Nova tarefa</button>`}
+    ${abas('abT',L,abaTar,'')}${lista.length ? lista.map(cartao).join('') : `<p class="muted" style="text-align:center;margin-top:24px">${abaTar==='Feito'?'Nenhuma tarefa concluída nos últimos 30 dias.':'Nada aqui.'}</p>`}`;
+  document.querySelectorAll('#abT button').forEach((b,i)=>b.onclick=()=>{ tarConc=''; ir('tarefas',L[i][0]); });
+};
+function tarSalva(){ const titulo = ($('#tTit').value||'').trim(); if(!titulo) return toast('Escreva o serviço');
+  if(!lancar('tarefa',{acao:'nova',tid:uid(),titulo,local:val('tLocal'),prazo:val('tPrazo'),prio:val('tPrio')})) return;
+  tarNova=false; abaTar='A fazer'; salvo(1,'tarefas'); }
+function tarStatus(id, status, comObs){ const t = (dados.tarefas||[]).find(x=>x.id===id); if(!t) return;
+  const d = {acao:'status',tid:id,status,titulo:t.titulo}; if(comObs) d.obs = val('tObs'); else if(status!=='Feito' && t.status==='Feito') d.obs = '';
+  if(!lancar('tarefa',d)) return; tarConc=''; salvo(1,'tarefas'); }
+function tarExcluir(id, bt){ if(bt.dataset.ok!=='1'){ bt.dataset.ok='1'; bt.textContent='Excluir mesmo?'; bt.style.color='var(--vermelho)'; bt.style.borderColor='var(--vermelho)'; return; }
+  const t = (dados.tarefas||[]).find(x=>x.id===id); if(!lancar('tarefa',{acao:'excluir',tid:id,titulo:t?t.titulo:''})) return; salvo(1,'tarefas'); }
 /* =================== LOG (quem lançou, quando e o quê) =================== */
 let logF = {user:'', tipo:'', txt:'', n:100};
 const dh = iso => iso ? new Date(iso).toLocaleString('pt-BR',{timeZone:'America/Cuiaba',day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '—';
