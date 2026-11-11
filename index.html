@@ -112,7 +112,7 @@ table.lis input{padding:9px 6px;text-align:center;min-width:0}
 <script>
 /* ======= configuração ======= */
 const API = 'https://script.google.com/macros/s/AKfycbwY3RA38GPBgCJ4UZjjwriIR1XyGTsPuZ1mBAuUJ_TNuZuF4nQg7P_q68GT8okeYCZd/exec';
-const VERSAO = '2.14';
+const VERSAO = '2.15';
 
 /* ======= estado ======= */
 const LS = {
@@ -220,7 +220,16 @@ APLICA.morte = (D,d) => { const q=+d.qtd||1; D.gado.lanc.push([d.data,0,0,d.sexo
 APLICA.trato = (D,d) => { const k=d.pasto.toUpperCase(); const u=D.semi.ultTrato[k]; if(!u||u.data<=d.data) D.semi.ultTrato[k]={data:d.data,kg:+d.kg}; D.semi.recentes.unshift({data:d.data,pasto:k,kg:+d.kg,quem:d.tratador}); };
 APLICA.chuva = (D,d) => { D.chuva.push([d.data,+d.mm]); D.chuva.sort((a,b)=>a[0]<b[0]?-1:1); };
 APLICA.manejo = (D,d) => { const m=String(d.modulo); if(d.datas){ Object.keys(D.rot.datas).forEach(k=>{ if(k.split('||')[0]===m) delete D.rot.datas[k]; }); Object.keys(d.datas).forEach(p=>{ if(d.datas[p]) D.rot.datas[m+'||'+p]=d.datas[p]; }); } if(d.lotes) D.rot.lotes[m]=d.lotes.map(l=>({categoria:l.categoria,cabecas:+l.cabecas||0,peso:+l.peso||0})); };
-APLICA.contagem = (D,d) => D.contagens.unshift({data:d.data,local:d.local,cab:+d.cabecas,faz:d.fazenda});
+APLICA.contagem = (D,d) => { D.contagens.unshift({data:d.data,local:d.local,cab:+d.cabecas,faz:d.fazenda,de:d.de||'',para:d.para||'',aj:'aguardando enviar'});
+  try{ const local=String(d.local||''), cab=+d.cabecas||0;
+    if(local.startsWith('Pasto ')){ const p=D.semi.pastos.find(x=>x.pasto===local.slice(6)); if(p){ p.bois=cab; if(d.para){ const q=D.semi.pastos.find(x=>x.pasto===d.para);
+        if(q&&q.bois){ q.bois+=cab; p.bois=0; } else if(q){ q.bois=cab; q.peso=p.peso; q.entrada=p.entrada; p.bois=0; } else p.pasto=d.para; } } }
+    else if(local.startsWith('Módulo ')){ const n=local.slice(7), L=D.rot.lotes[n]||[];
+      if(d.cats&&d.cats.length) D.rot.lotes[n]=d.cats.map(c=>({categoria:c.categoria,cabecas:+c.cabecas||0,peso:(L.find(l=>l.categoria===c.categoria)||{}).peso||0}));
+      else if(L.length===1) L[0].cabecas=cab; else if(!L.length) D.rot.lotes[n]=[{categoria:'Lote',cabecas:cab,peso:0}];
+      if(d.para){ const m=(D.rot.modulos||[]).find(x=>String(x.n)===n), ordem=m?m.pastos.map(p=>p[0]):[], idx=ordem.indexOf(d.para);
+        if(idx>=0){ Object.keys(D.rot.datas).forEach(k=>{ const s=k.split('||'); if(s[0]===n && ordem.indexOf(s[1])>=idx) delete D.rot.datas[k]; }); D.rot.datas[n+'||'+d.para]=d.data; } } }
+  }catch(e){} };
 APLICA.bebedouro = (D,d) => { const u=D.bebedouros[d.local]; if(!u||u.data<=d.data) D.bebedouros[d.local]={data:d.data,obs:d.obs}; D.bebHist.unshift({data:d.data,local:d.local,user:user.nome}); };
 APLICA.cocho = (D,d) => { D.ultCocho[d.modulo]={data:d.data,produto:d.produto,sacos:+d.sacos,kg:+d.kg}; D.cochoHist.unshift({data:d.data,modulo:d.modulo,pasto:d.pasto,produto:d.produto,sacos:+d.sacos,kg:+d.kg}); };
 APLICA.maquina = (D,d) => D.maqHist.unshift({data:d.data,maquina:d.maquina,tipo:d.tipo,horimetro:+d.horimetro,litros:+d.litros,desc:d.desc,user:user.nome});
@@ -786,13 +795,15 @@ function salvaChuva(){ const d={data:val('fData'),mm:val('fMm'),obs:val('fObs')}
 TELAS.contagem = () => {
   app.innerHTML = `${semDados()}<h2>Contagem</h2><div class="card">
     <label>Fazenda</label><select id="fFaz">${opts(FAZENDAS, fazenda)}</select>
-    <label>Local</label><select id="fLocal" onchange="esperado()">${opts(locaisTodos())}</select>
+    <label>Local</label><select id="fLocal" onchange="contLocal()">${opts(locaisTodos())}</select>
     <div class="status" id="esp"></div>
-    <label>Cabeças contadas</label><input id="fCab" type="number" inputmode="numeric" oninput="esperado()">
+    <div id="contCab"></div>
+    <div id="contPara"></div>
     ${campoData()}<label>Obs.</label><input id="fObs">
+    <div class="status" id="contAviso"></div>
     <div style="height:14px"></div><button class="btn prim full" onclick="salvaContagem()">Salvar</button></div>
-    ${dados&&dados.contagens.length?`<div class="card"><h3>Últimas contagens</h3><table><tr><th>Data</th><th>Local</th><th class="n">Cab.</th></tr>${dados.contagens.slice(0,10).map(r=>`<tr><td>${br(r.data)}</td><td>${esc(r.local)}</td><td class="n">${fmt(r.cab)}</td></tr>`).join('')}</table></div>`:''}`;
-  esperado();
+    ${dados&&dados.contagens.length?`<div class="card"><h3>Últimas contagens</h3><table><tr><th>Data</th><th>Local</th><th class="n">Cab.</th></tr>${dados.contagens.slice(0,10).map(r=>`<tr><td>${br(r.data)}</td><td>${esc(r.local)}${r.para?`<br><span class="muted" style="font-size:12px">${r.de?esc(r.de)+' → ':'→ '}${esc(r.para)}</span>`:''}${r.aj?`<br><span class="muted" style="font-size:12px">${esc(r.aj)}</span>`:''}</td><td class="n">${fmt(r.cab)}${r.antes!==''&&r.antes!=null&&+r.antes!==+r.cab?`<br><span class="muted" style="font-size:12px">era ${fmt(r.antes)}</span>`:''}</td></tr>`).join('')}</table></div>`:''}`;
+  contLocal();
 };
 function esperadoDe(local){
   if(!dados) return null;
@@ -800,8 +811,43 @@ function esperadoDe(local){
   if(local.startsWith('Módulo ')){ const l=dados.rot.lotes[local.slice(7)]||[]; return l.reduce((s,x)=>s+(+x.cabecas||0),0); }
   return null;
 }
-function esperado(){ const e=esperadoDe(val('fLocal')), c=+val('fCab'); $('#esp').innerHTML = e==null?'':`Na planilha: <b>${fmt(e)}</b> cab.`+(c? (c===e?' <span class="tag t-ok">bate</span>':` <span class="tag t-vm">diferença ${c-e>0?'+':''}${c-e}</span>`):''); }
-function salvaContagem(){ const d={fazenda:val('fFaz'),local:val('fLocal'),cabecas:val('fCab'),data:val('fData'),obs:val('fObs')}; if(d.cabecas==='') return toast('Informe as cabeças'); lancar('contagem',d); salvo(1); }
+// A contagem troca o nº de cabeças do lote pelo contado e pode mudar o lote inteiro de pasto (dentro do semi ou dentro do módulo).
+function contInfo(local){
+  if(!dados) return {tipo:''};
+  if(local.startsWith('Pasto ')) return {tipo:'semi', pasto:local.slice(6)};
+  if(local.startsWith('Módulo ')){ const n=local.slice(7), m=modulos().find(x=>String(x.n)===n), c=m?calcModulo(m,dados.rot.datas,dados.rot.lotes):null;
+    return {tipo:'rot', n, m, atual:c&&c.pastoAtual?c.pastoAtual.nome:'', lote:dados.rot.lotes[n]||[]}; }
+  return {tipo:''};
+}
+function contLocal(){
+  const I=contInfo(val('fLocal'));
+  $('#contCab').innerHTML = I.tipo==='rot' && I.lote.length>1
+    ? '<label>Cabeças contadas por categoria</label>'+I.lote.map(l=>`<div class="linha" style="gap:8px;margin-bottom:6px"><span style="flex:1">${esc(String(l.categoria||'').trim()||'Lote')} <span class="muted">(planilha ${fmt(l.cabecas)})</span></span><input class="fCat" data-c="${esc(l.categoria||'')}" type="number" inputmode="numeric" style="width:110px" oninput="esperado()"></div>`).join('')
+    : '<label>Cabeças contadas</label><input id="fCab" type="number" inputmode="numeric" oninput="esperado()">';
+  let o='';
+  if(I.tipo==='rot' && I.m) o = `<label>Mudou de pasto?</label><select id="fPara" onchange="contPara()"><option value="">Não, continua ${I.atual?'no '+esc(I.atual):'onde está'}</option>${I.m.pastos.filter(p=>p[0]!==I.atual).map(p=>`<option value="${esc(p[0])}">Foi para o ${esc(p[0])}</option>`).join('')}</select>`;
+  else if(I.tipo==='semi') o = `<label>Mudou de pasto?</label><select id="fPara" onchange="contPara()"><option value="">Não, continua no pasto ${esc(I.pasto)}</option>${dados.semi.pastos.filter(p=>p.pasto!==I.pasto).map(p=>`<option value="${esc(p.pasto)}">Foi para o pasto ${esc(p.pasto)} ${p.bois?'(tem '+fmt(p.bois)+' cab. — junta os lotes)':'(vazio)'}</option>`).join('')}<option value="__outro">Outro pasto (digitar o nome)</option></select><input id="fParaTxt" placeholder="Nome do pasto" style="display:none;margin-top:8px" oninput="contPara()">`;
+  $('#contPara').innerHTML = o; esperado(); contPara();
+}
+function contDestino(){ const s=$('#fPara'); if(!s||!s.value) return ''; if(s.value==='__outro') return String(val('fParaTxt')||'').trim().toUpperCase().replace(/^PASTO\s+/,''); return s.value; }
+function contPara(){
+  const s=$('#fPara'), t=$('#fParaTxt'); if(t) t.style.display = s && s.value==='__outro' ? '' : 'none';
+  const I=contInfo(val('fLocal')), para=contDestino(); let a='Só registra a contagem.';
+  if(I.tipo==='semi'){ a='Ao salvar, o lote deste pasto na planilha do trato passa a ter o número contado.';
+    if(para){ const q=dados.semi.pastos.find(p=>p.pasto===para); a += q&&q.bois ? ` O lote junta com o do pasto ${para}: soma as cabeças e vale a data de entrada do pasto ${para}.` : ` O lote passa para o pasto ${para} com a mesma data e peso de entrada, e os tratos dele vão junto.`; } }
+  else if(I.tipo==='rot'){ a='Ao salvar, o lote do módulo passa a ter o número contado.'+(para?` O gado passa a estar no ${para} a partir da data acima.`:''); }
+  $('#contAviso').textContent = a;
+}
+function contTotal(){ const cs=[...document.querySelectorAll('.fCat')]; if(cs.length){ if(cs.some(c=>c.value==='')) return null; return cs.reduce((s,c)=>s+(+c.value||0),0); } const v=val('fCab'); return v===''||v==null ? null : +v; }
+function esperado(){ const e=esperadoDe(val('fLocal')), c=contTotal(); $('#esp').innerHTML = e==null?'':`Na planilha: <b>${fmt(e)}</b> cab.`+(c!=null? (c===e?' <span class="tag t-ok">bate</span>':` <span class="tag t-vm">diferença ${c-e>0?'+':''}${c-e}</span>`):''); }
+function salvaContagem(){
+  const I=contInfo(val('fLocal')), tot=contTotal(); if(tot==null) return toast('Informe as cabeças');
+  const para=contDestino(); if($('#fPara') && $('#fPara').value==='__outro' && !para) return toast('Digite o nome do pasto');
+  const d={fazenda:val('fFaz'),local:val('fLocal'),cabecas:tot,data:val('fData'),obs:val('fObs')};
+  const cs=[...document.querySelectorAll('.fCat')]; if(cs.length) d.cats=cs.map(c=>({categoria:c.dataset.c, cabecas:+c.value||0}));
+  if(para){ d.para=para; d.de = I.tipo==='rot' ? I.atual : I.pasto; }
+  lancar('contagem',d); salvo(1);
+}
 
 /* =================== BEBEDOURO =================== */
 const limBeb = () => dados && dados.regras && dados.regras.bebedouro ? dados.regras.bebedouro.limite : 7;
