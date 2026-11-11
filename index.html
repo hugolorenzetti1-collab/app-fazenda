@@ -112,7 +112,7 @@ table.lis input{padding:9px 6px;text-align:center;min-width:0}
 <script>
 /* ======= configuração ======= */
 const API = 'https://script.google.com/macros/s/AKfycbwY3RA38GPBgCJ4UZjjwriIR1XyGTsPuZ1mBAuUJ_TNuZuF4nQg7P_q68GT8okeYCZd/exec';
-const VERSAO = '2.13';
+const VERSAO = '2.14';
 
 /* ======= estado ======= */
 const LS = {
@@ -750,7 +750,7 @@ TELAS.morte = () => {
     <img id="fotoPrev" class="oculto" style="width:100%;border-radius:10px;margin-top:8px">
     <div class="status">Entra como saída no controle de gado, com "MORTE" na observação. A foto vai para uma pasta no Google Drive.</div>
     <div style="height:14px"></div><button class="btn prim full" onclick="salvaMorte()">Salvar</button></div>
-    ${dados&&dados.mortes&&dados.mortes.length?`<div class="card"><h3>Últimas mortes</h3><table>${dados.mortes.slice(0,10).map(r=>`<tr><td>${br(r.data)}</td><td>${esc(r.faz)}</td><td>${esc(r.pasto)}</td><td>${esc(r.causa)}</td><td>${r.foto?`<a href="${esc(r.foto)}" target="_blank">foto</a>`:''}</td></tr>`).join('')}</table></div>`:''}`;
+    ${dados&&dados.mortes&&dados.mortes.length?`<div class="card"><h3>Últimas mortes</h3><table>${dados.mortes.slice(0,10).map(r=>`<tr><td>${br(r.data)}</td><td>${esc(r.faz)}</td><td>${esc(r.pasto)}</td><td>${esc(r.causa)}</td><td>${r.foto?`<button class="btn peq" onclick="verFoto('${esc(r.foto)}')">📷 ver</button>`:''}</td></tr>`).join('')}</table></div>`:''}`;
 };
 function pegaFoto(inp){
   const f = inp.files && inp.files[0]; if(!f) return;
@@ -1050,6 +1050,20 @@ async function baixarMapa(){
   const c = await caches.open('fl-tiles'); let ok=0;
   for(let i=0;i<urls.length;i+=8){ await Promise.all(urls.slice(i,i+8).map(u=>fetch(u,{mode:'cors'}).then(r=>{ if(r.ok){ ok++; return c.put(u,r); } }).catch(()=>{}))); }
   toast('Mapa offline pronto ('+ok+' pedaços) ✔', 3500);
+}
+
+/* ======= foto da morte: busca pelo servidor (com o PIN) e mostra na tela ======= */
+const FOTOS = {};
+function fechaFoto(){ const e = $('#fotoVer'); if(e) e.remove(); }
+async function verFoto(url){
+  if(!FOTOS[url] && !navigator.onLine) return toast('Precisa de internet para ver a foto');
+  fechaFoto();
+  const e = document.createElement('div'); e.id = 'fotoVer'; e.onclick = fechaFoto;
+  e.style.cssText = 'position:fixed;inset:0;z-index:3000;background:rgba(0,0,0,.88);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:16px;color:#fff';
+  e.innerHTML = '<div>Carregando a foto…</div>'; document.body.appendChild(e);
+  try{ if(!FOTOS[url]){ const j = await api({a:'foto', url}); FOTOS[url] = j.foto; }
+    if($('#fotoVer')) e.innerHTML = `<img src="${FOTOS[url]}" style="max-width:100%;max-height:86vh;border-radius:10px"><div style="margin-top:12px;font-size:14px;opacity:.85">Toque para fechar</div>`;
+  }catch(err){ fechaFoto(); toast('Não abriu a foto: '+err.message, 4000); }
 }
 
 /* ======= aviso de dados desatualizados ======= */
