@@ -1,5 +1,5 @@
 // Fazenda Lorenzetti — funciona sem internet
-const V = 'fl-app-v13';
+const V = 'fl-app-v14';
 const BASE = ['./', 'index.html', 'manifest.json', 'pastos.json', 'icon-192.png', 'icon-512.png', 'apple-touch-icon.png',
   'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css',
   'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js'];
