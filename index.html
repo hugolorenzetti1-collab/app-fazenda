@@ -112,7 +112,7 @@ table.lis input{padding:9px 6px;text-align:center;min-width:0}
 <script>
 /* ======= configuração ======= */
 const API = 'https://script.google.com/macros/s/AKfycbwY3RA38GPBgCJ4UZjjwriIR1XyGTsPuZ1mBAuUJ_TNuZuF4nQg7P_q68GT8okeYCZd/exec';
-const VERSAO = '2.20';
+const VERSAO = '2.21';
 
 /* ======= estado ======= */
 const LS = {
@@ -818,9 +818,36 @@ function painelChuva(){
   const comChuva = c.filter(x=>x[1]>0), ult = comChuva[comChuva.length-1];
   const tot = (a,m) => c.filter(x=>+x[0].slice(0,4)===a && (m==null || +x[0].slice(5,7)===m)).reduce((s,x)=>s+x[1],0);
   let h = `<div class="kpis k3">${kpi('mm no mês',fmt(tot(ano,+H.slice(5,7))))}${kpi('mm no ano',fmt(tot(ano)))}${kpi('dias sem chuva',ult?diasEntre(ult[0],H):'—')}</div>`;
+  h += graficoChuva();
   h += `<div class="card" style="margin-top:12px"><h3>Por mês</h3><table><tr><th>Mês</th><th class="n">${ano}</th><th class="n">${ano-1}</th></tr>${MESES.map((m,i)=>`<tr><td>${m}</td><td class="n">${fmt(tot(ano,i+1))}</td><td class="n">${fmt(tot(ano-1,i+1))}</td></tr>`).join('')}<tr><td><b>Total</b></td><td class="n"><b>${fmt(tot(ano))}</b></td><td class="n"><b>${fmt(tot(ano-1))}</b></td></tr></table></div>`;
   h += `<div class="card"><h3>Últimas chuvas</h3><table><tr><th>Data</th><th class="n">mm</th></tr>${comChuva.slice(-12).reverse().map(r=>`<tr><td>${br(r[0])}</td><td class="n">${fmt(r[1],1)}</td></tr>`).join('')}</table></div>`;
   return h;
+}
+// Chuva por mês: uma linha por ano e a média de todos os anos em destaque.
+function graficoChuva(){
+  const c = dados.chuva || []; if(!c.length) return '';
+  const Hj = hojeISO(), anoAt = +Hj.slice(0,4), mesAt = +Hj.slice(5,7), a0 = +c[0][0].slice(0,4), m0 = +c[0][0].slice(5,7);
+  const anos = []; for(let a=a0; a<=anoAt; a++) anos.push(a);
+  const S = {}; anos.forEach(a=>S[a]=Array(12).fill(0)); c.forEach(x=>{ const a=+x[0].slice(0,4); if(S[a]) S[a][+x[0].slice(5,7)-1] += x[1]; });
+  const vale = (a,m) => !(a===a0 && m<m0) && !(a===anoAt && m>mesAt);          // mês que existe na série
+  const cheio = (a,m) => vale(a,m) && !(a===anoAt && m===mesAt);              // mês fechado (entra na média)
+  const med = Array(12).fill(null); for(let m=1;m<=12;m++){ const v = anos.filter(a=>cheio(a,m)).map(a=>S[a][m-1]); if(v.length) med[m-1] = v.reduce((s,x)=>s+x,0)/v.length; }
+  const W=640,Hh=300,L=44,B=26,T=10,R=10, mx = Math.max(50, ...anos.flatMap(a=>S[a].filter((v,i)=>vale(a,i+1))), ...med.filter(v=>v!=null));
+  const topo = Math.ceil(mx/100)*100, X = i => L+(W-L-R)*i/11, Y = v => T+(Hh-T-B)*(1-v/topo);
+  const cores = ['#7aa6d6','#c9a227','#8fbf8f','#b58bc9','#d98f8f','#6fc2c2','#a9a9a9','#d6a36f','#9aa8e0','#c2c26f'];
+  const linha = (pts,cor,w,op) => pts.length>1 ? `<polyline fill="none" stroke="${cor}" stroke-width="${w}" stroke-opacity="${op}" stroke-linejoin="round" stroke-linecap="round" points="${pts.map(p=>X(p[0]).toFixed(1)+','+Y(p[1]).toFixed(1)).join(' ')}"/>` : (pts.length ? `<circle cx="${X(pts[0][0])}" cy="${Y(pts[0][1])}" r="3" fill="${cor}"/>` : '');
+  let g = ''; for(let v=0; v<=topo; v+=topo/4){ g += `<line x1="${L}" x2="${W-R}" y1="${Y(v)}" y2="${Y(v)}" stroke="#e5e2d8"/><text x="${L-6}" y="${Y(v)+4}" text-anchor="end" font-size="12" fill="#777">${Math.round(v)}</text>`; }
+  MESES.forEach((m,i)=>{ g += `<text x="${X(i)}" y="${Hh-6}" text-anchor="middle" font-size="12" fill="#777">${m}</text>`; });
+  const cor = {}; anos.forEach((a,i)=>cor[a] = a===anoAt ? 'var(--laranja,#C8632B)' : cores[i%cores.length]);
+  anos.filter(a=>a!==anoAt).forEach(a=>{ g += linha(S[a].map((v,i)=>[i,v]).filter(p=>vale(a,p[0]+1)), cor[a], 1.6, .9); });
+  g += linha(med.map((v,i)=>[i,v]).filter(p=>p[1]!=null), '#1F3D2B', 4, 1);
+  g += linha(S[anoAt].map((v,i)=>[i,v]).filter(p=>vale(anoAt,p[0]+1)), cor[anoAt], 2.6, 1);
+  const tot = a => S[a].reduce((s,v)=>s+v,0), fechados = anos.filter(a=>a!==anoAt && !(a===a0 && m0>1));
+  const chip = (c,t,w) => `<span style="display:inline-flex;align-items:center;gap:5px;margin:2px 10px 2px 0;font-size:13px"><i style="display:inline-block;width:18px;height:${w}px;border-radius:2px;background:${c}"></i>${t}</span>`;
+  return `<div class="card" style="margin-top:12px"><h3>Chuva por mês — todos os anos</h3>
+    <svg viewBox="0 0 ${W} ${Hh}" style="width:100%;height:auto;display:block">${g}</svg>
+    <div style="margin-top:8px">${chip('#1F3D2B','<b>Média</b>'+(fechados.length?' · '+fmt(Math.round(fechados.reduce((s,a)=>s+tot(a),0)/fechados.length))+' mm/ano':''),5)}${anos.slice().reverse().map(a=>chip(cor[a],(a===anoAt?'<b>'+a+'</b>':a)+' · '+fmt(Math.round(tot(a)))+' mm',3)).join('')}</div>
+    <div class="muted" style="font-size:12px;margin-top:6px">mm por mês. A média usa só meses fechados; o total médio por ano usa só anos completos.</div></div>`;
 }
 function salvaChuva(){ const d={data:val('fData'),mm:val('fMm'),obs:val('fObs')}; if(d.mm==='') return toast('Informe os mm'); lancar('chuva',d); salvo(1); }
 
