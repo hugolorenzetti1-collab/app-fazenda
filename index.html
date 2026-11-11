@@ -112,7 +112,7 @@ table.lis input{padding:9px 6px;text-align:center;min-width:0}
 <script>
 /* ======= configuração ======= */
 const API = 'https://script.google.com/macros/s/AKfycbwY3RA38GPBgCJ4UZjjwriIR1XyGTsPuZ1mBAuUJ_TNuZuF4nQg7P_q68GT8okeYCZd/exec';
-const VERSAO = '2.15';
+const VERSAO = '2.16';
 
 /* ======= estado ======= */
 const LS = {
@@ -1009,11 +1009,12 @@ let abaPainel='geral';
 TELAS.painel = (aba) => {
   if(!dados){ app.innerHTML=semDados(); return; }
   if(aba) abaPainel=aba;
-  const L=[['geral','Geral'],['gado','Gado'],['trato','Trato'],['rot','Rotacionado'],['chuva','Chuva'],['beb','Bebedouro'],['cocho','Cocho/sal'],['maq','Máquinas']];
+  const L=[['geral','Geral'],['reb','Rebanho'],['gado','Gado'],['trato','Trato'],['rot','Rotacionado'],['chuva','Chuva'],['beb','Bebedouro'],['cocho','Cocho/sal'],['maq','Máquinas']];
   app.innerHTML = abas('abP',L,abaPainel,'') + '<div id="painelC"></div>';
   document.querySelectorAll('#abP button').forEach((b,i)=>b.onclick=()=>ir('painel',L[i][0]));
   const C = $('#painelC');
   if(abaPainel==='geral') C.innerHTML = painelGeral();
+  else if(abaPainel==='reb') C.innerHTML = painelRebanho();
   else if(abaPainel==='gado'){ C.innerHTML='<div id="gadoC"></div>'; gadoResumoPainel(); }
   else if(abaPainel==='trato') C.innerHTML = painelTrato() + '<div class="sec">Giro 25</div>' + tabelaGiro();
   else if(abaPainel==='rot') C.innerHTML = rotPainel() + '<div class="sec">Onde está cada lote</div>' + rotResumo(dados.rot.datas, dados.rot.lotes);
@@ -1037,6 +1038,26 @@ function painelGeral(){
     <tr><td>Lorenzetti</td><td class="n">${fmt(sL.m)}</td><td class="n">${fmt(sL.f)}</td><td class="n"><b>${fmt(sL.m+sL.f)}</b></td></tr>
     <tr><td>União</td><td class="n">${fmt(sU.m)}</td><td class="n">${fmt(sU.f)}</td><td class="n"><b>${fmt(sU.m+sU.f)}</b></td></tr></table></div>
   <p class="muted">Dados de ${new Date(LS.get('dadosEm',dados.gerado)).toLocaleString('pt-BR')}. Toque nas abas acima para ver cada área.</p>`;
+}
+// Rebanho: cada lote da TIP (semi, GIRO 25) e do rotacionado (lotes dos módulos) numa tela só.
+function painelRebanho(){
+  const num=s=>{ const x=parseFloat(String(s==null?'':s).replace(/\./g,'').replace(',','.')); return isNaN(x)?0:x; };
+  const tb={}; (dados.semi.tabela||[]).forEach(r=>{ tb[String(r[0]).trim().toUpperCase()]=r; });
+  const tip=dados.semi.pastos.filter(p=>p.bois>0).map(p=>{ const r=tb[String(p.pasto).toUpperCase()]||[]; return {pasto:p.pasto, cab:p.bois, ent:p.entrada, dias:p.entrada?diasEntre(p.entrada,hojeISO()):'', peso:num(r[8])||p.peso||0, origem:r[5]||''}; });
+  const rot=[]; modulos().forEach(m=>{ const c=calcModulo(m,dados.rot.datas,dados.rot.lotes), L=(dados.rot.lotes[String(m.n)]||[]).filter(l=>+l.cabecas>0); if(!L.length) return;
+    rot.push({n:m.n, pasto:c.pastoAtual?c.pastoAtual.nome:'', ent:c.pastoAtual?c.pastoAtual.entrada:'', lotes:L, cab:c.cab}); });
+  const tT=tip.reduce((s,x)=>s+x.cab,0), tR=rot.reduce((s,x)=>s+x.cab,0);
+  const pm=(a)=>{ const c=a.reduce((s,x)=>s+x[0],0); return c? a.reduce((s,x)=>s+x[0]*x[1],0)/c : 0; };
+  const pT=pm(tip.map(x=>[x.cab,x.peso])), pR=pm(rot.flatMap(x=>x.lotes.map(l=>[+l.cabecas||0,+l.peso||0])));
+  const sm='class="muted" style="font-size:12px"';
+  return `<div class="kpis k3">${kpi('TIP',fmt(tT))}${kpi('Rotacionado',fmt(tR))}${kpi('Total em lotes',fmt(tT+tR))}</div>
+  <div class="sec">TIP — ${tip.length} lote${tip.length===1?'':'s'}</div><div class="card">${tip.length?`<table><tr><th>Pasto</th><th class="n">Cab.</th><th class="n">Peso atual</th><th class="n">Dias</th></tr>
+    ${tip.map(x=>`<tr><td><b>${esc(x.pasto)}</b>${x.origem?`<br><span ${sm}>${esc(x.origem)}</span>`:''}</td><td class="n">${fmt(x.cab)}</td><td class="n">${x.peso?fmt(x.peso)+' kg':'—'}</td><td class="n">${x.dias===''?'—':x.dias}${x.ent?`<br><span ${sm}>${br(x.ent)}</span>`:''}</td></tr>`).join('')}
+    <tr><td><b>Total</b></td><td class="n"><b>${fmt(tT)}</b></td><td class="n"><b>${pT?fmt(Math.round(pT))+' kg':'—'}</b></td><td></td></tr></table>`:'<p class="muted">Nenhum lote na TIP.</p>'}</div>
+  <div class="sec">Rotacionado — ${rot.length} módulo${rot.length===1?'':'s'} com gado</div><div class="card">${rot.length?`<table><tr><th>Módulo / pasto</th><th>Categoria</th><th class="n">Cab.</th><th class="n">Peso</th></tr>
+    ${rot.map(x=>x.lotes.map((l,i)=>`<tr><td>${i?'':`<b>Mód. ${x.n}</b>${x.pasto?`<br><span ${sm}>${esc(x.pasto)}${x.ent?' · '+br(x.ent):''}</span>`:''}`}</td><td>${esc(String(l.categoria||'').trim()||'Lote')}</td><td class="n">${fmt(+l.cabecas)}</td><td class="n">${+l.peso?fmt(+l.peso)+' kg':'—'}</td></tr>`).join('')).join('')}
+    <tr><td><b>Total</b></td><td></td><td class="n"><b>${fmt(tR)}</b></td><td class="n"><b>${pR?fmt(Math.round(pR))+' kg':'—'}</b></td></tr></table>`:'<p class="muted">Nenhum módulo com gado.</p>'}</div>
+  <p class="muted">TIP: peso atual estimado pela planilha do trato (entrada + ganho). Rotacionado: peso informado no lote do módulo.</p>`;
 }
 function gadoResumoPainel(){
   const C=$('#gadoC'); const s=saldoGado(filtroFaz);
