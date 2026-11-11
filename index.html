@@ -112,7 +112,7 @@ table.lis input{padding:9px 6px;text-align:center;min-width:0}
 <script>
 /* ======= configuração ======= */
 const API = 'https://script.google.com/macros/s/AKfycbwY3RA38GPBgCJ4UZjjwriIR1XyGTsPuZ1mBAuUJ_TNuZuF4nQg7P_q68GT8okeYCZd/exec';
-const VERSAO = '2.11';
+const VERSAO = '2.12';
 
 /* ======= estado ======= */
 const LS = {
@@ -631,7 +631,7 @@ function painelModulo(m){
     ${c.cab?`<div style="height:8px;background:#e6e3da;border-radius:6px;margin:10px 0 6px;overflow:hidden"><div style="height:100%;width:${pct}%;background:${cor}"></div></div>
     <div class="linha" style="justify-content:space-between;font-size:14px"><span class="muted">${fmt(c.cap>0?c.ua/c.cap*100:0)}% da capacidade</span>${folga}</div>`:''}
     <details style="margin-top:10px"><summary style="font-weight:700;color:var(--verde);font-size:14px">Ver pastos (${m.pastos.length}) · ${fmt(m.area,1)} ha</summary>
-    <table style="margin-top:6px"><tr><th>Pasto</th><th class="n">ha</th><th class="n">Dias</th><th class="n">UA</th><th></th></tr>${c.pastos.map(p=>{ const u = med[m.n+'||'+p.nome]; return `<tr><td><b>${esc(p.nome.replace(/^PASTO\s+/,''))}</b>${p.entrada?`<br><span class="muted" style="font-size:12px">${br(p.entrada).slice(0,5)} a ${br(p.saida).slice(0,5)}</span>`:''}</td><td class="n">${fmt((dados.rot.areaUtil||{})[p.nome]||0,1)}</td><td class="n">${Math.ceil(p.dias-1e-9)}</td><td class="n">${u?fmt(u.cap,1):'—'}</td><td class="n">${EST[p.estado]||''}</td></tr>`; }).join('')}</table></details>
+    <table style="margin-top:6px"><tr><th>Pasto</th><th class="n">ha</th><th class="n">Dias</th><th class="n">Altura × dens.</th><th class="n">UA</th></tr>${c.pastos.map(p=>{ const u = med[m.n+'||'+p.nome]; return `<tr><td><b>${esc(p.nome.replace(/^PASTO\s+/,''))}</b>${p.entrada?`<br><span class="muted" style="font-size:12px">${br(p.entrada).slice(0,5)} a ${br(p.saida).slice(0,5)}</span>`:''}${EST[p.estado]?'<br>'+EST[p.estado]:''}</td><td class="n">${fmt((dados.rot.areaUtil||{})[p.nome]||0,1)}</td><td class="n">${Math.ceil(p.dias-1e-9)}</td><td class="n">${u?`${(+u.altura||0).toLocaleString('pt-BR')} cm × ${fmt(u.densidade)}<br><span class="muted" style="font-size:12px">${br(u.data).slice(0,5)}</span>`:'<span class="muted">sem medição</span>'}</td><td class="n">${u?`<b>${fmt(u.cap,1)}</b>`:'—'}</td></tr>`; }).join('')}</table></details>
   </div>`;
 }
 
@@ -971,7 +971,6 @@ function painelGeral(){
   <div class="card" style="margin-top:12px"><h3>Gado por fazenda</h3><table><tr><th>Fazenda</th><th class="n">Machos</th><th class="n">Fêmeas</th><th class="n">Total</th></tr>
     <tr><td>Lorenzetti</td><td class="n">${fmt(sL.m)}</td><td class="n">${fmt(sL.f)}</td><td class="n"><b>${fmt(sL.m+sL.f)}</b></td></tr>
     <tr><td>União</td><td class="n">${fmt(sU.m)}</td><td class="n">${fmt(sU.f)}</td><td class="n"><b>${fmt(sU.m+sU.f)}</b></td></tr></table></div>
-  <div class="card"><h3>Avisos (${av.length})</h3>${av.map(a=>`<div style="padding:6px 0;border-bottom:1px solid #eee;color:var(--vermelho)">• ${esc(a.t)}</div>`).join('')||'<span class="muted">Nenhum aviso. 🟢</span>'}</div>
   <p class="muted">Dados de ${new Date(LS.get('dadosEm',dados.gerado)).toLocaleString('pt-BR')}. Toque nas abas acima para ver cada área.</p>`;
 }
 function gadoResumoPainel(){
