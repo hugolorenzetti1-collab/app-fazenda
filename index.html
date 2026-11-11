@@ -14,6 +14,9 @@
 :root{--verde:#1F3D2B;--verde2:#2E5A3F;--laranja:#CF6B33;--laranja2:#E8761A;--fundo:#F4F2EC;--card:#fff;--txt:#1d241f;--cinza:#6b7268;--borda:#d9d6cc;--vermelho:#B3261E;--ok:#2E7D4F;--azul:#2f6fb3;--rosa:#d45a93}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;background:var(--fundo);color:var(--txt);font:16px/1.35 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+#velho:empty{display:none}
+#velho{background:#fff4e0;border-bottom:1px solid #f0c98a;color:#7a4a00;padding:8px 14px;font-size:13px;line-height:1.35;display:flex;gap:10px;align-items:center;justify-content:space-between}
+#velho button{flex:none;border:1px solid #c98a2b;background:#fff;color:#7a4a00;border-radius:8px;padding:6px 10px;font-weight:700;font-size:13px}
 header{position:sticky;top:0;z-index:1000;background:var(--verde);color:#fff;display:flex;align-items:center;gap:10px;padding:10px 16px;padding-top:calc(10px + env(safe-area-inset-top));border-bottom:3px solid var(--laranja)}
 header .tit{font-weight:800;letter-spacing:.08em;font-size:15px;flex:1}
 header .tit b{color:var(--laranja)}
@@ -101,6 +104,7 @@ table.lis input{padding:9px 6px;text-align:center;min-width:0}
   <div class="tit">FAZENDA <b>LORENZETTI</b></div>
   <img src="icon-192.png" alt="">
 </header>
+<div id="velho"></div>
 <main id="app"></main>
 <div id="barra"></div>
 <div class="toast" id="toast"></div>
@@ -108,7 +112,7 @@ table.lis input{padding:9px 6px;text-align:center;min-width:0}
 <script>
 /* ======= configuração ======= */
 const API = 'https://script.google.com/macros/s/AKfycbwY3RA38GPBgCJ4UZjjwriIR1XyGTsPuZ1mBAuUJ_TNuZuF4nQg7P_q68GT8okeYCZd/exec';
-const VERSAO = '2.9';
+const VERSAO = '2.10';
 
 /* ======= estado ======= */
 const LS = {
@@ -156,7 +160,7 @@ const IC = {
 
 /* ======= navegação ======= */
 let tela = 'home';
-function ir(t, arg){ if(t!=='mapa' && typeof gpsPara==='function' && tela==='mapa') gpsPara(); if(user && user.ver && !['home','login','painel','mapa'].includes(t)){ t='painel'; arg=undefined; } tela=t; $('#barra').innerHTML=''; $('#btVoltar').style.display = (t==='home'||t==='login')?'none':'block'; window.scrollTo(0,0); (TELAS[t]||TELAS.home)(arg); if(t!=='home') history.pushState({t},''); }
+function ir(t, arg){ setTimeout(avisoDados, 0); if(t!=='login' && user) autoAtualiza(); if(t!=='mapa' && typeof gpsPara==='function' && tela==='mapa') gpsPara(); if(user && user.ver && !['home','login','painel','mapa'].includes(t)){ t='painel'; arg=undefined; } tela=t; $('#barra').innerHTML=''; $('#btVoltar').style.display = (t==='home'||t==='login')?'none':'block'; window.scrollTo(0,0); (TELAS[t]||TELAS.home)(arg); if(t!=='home') history.pushState({t},''); }
 window.addEventListener('popstate', ()=>{ if(tela!=='home' && tela!=='login') ir('home'); });
 
 /* ======= API ======= */
@@ -188,11 +192,12 @@ async function sincronizar(silencioso){
     if(comErro) toast(comErro+' lançamento(s) deram erro. Veja a fila.', 4000);
     else if(enviados && !silencioso) toast(enviados+' lançamento(s) enviados ✔');
     const d = await api({a:'dados'});
-    dados = d.dados; aplicaFila(); salvaDados(); LS.set('dadosEm', new Date().toISOString());
+    dados = d.dados; aplicaFila(); salvaDados(); LS.set('dadosEm', new Date().toISOString()); falhouSync = false;
     if(!silencioso && !enviados && !comErro) toast('Dados atualizados ✔');
   }catch(e){
+    falhouSync = true;
     if(!silencioso) toast('Não sincronizou: '+e.message, 4000);
-  }finally{ enviando=false; render(); }
+  }finally{ enviando=false; render(); avisoDados(); }
 }
 function salvaDados(){ if(!LS.set('dados2', dados)) toast('Celular sem espaço para guardar os dados', 4000); }
 
@@ -999,10 +1004,37 @@ async function baixarMapa(){
   toast('Mapa offline pronto ('+ok+' pedaços) ✔', 3500);
 }
 
+/* ======= aviso de dados desatualizados ======= */
+// Mostra, em qualquer tela, de quando são os dados quando eles têm mais de 1 hora ou a última atualização falhou.
+let falhouSync = false, ultTentativa = 0;
+const DADOS_VELHOS_MIN = 60, AUTO_MIN = 10;
+function idadeDados(){ const em = LS.get('dadosEm', null); return em ? (Date.now() - new Date(em).getTime())/60000 : null; }
+function avisoDados(){
+  const e = $('#velho'); if(!e) return;
+  const min = idadeDados();
+  if(!user || tela==='login' || min===null){ e.innerHTML = ''; return; }
+  if(enviando){ if(min >= DADOS_VELHOS_MIN || falhouSync) e.innerHTML = '<span>Atualizando os dados…</span>'; return; }
+  if(min < DADOS_VELHOS_MIN && !falhouSync){ e.innerHTML = ''; return; }
+  const em = new Date(LS.get('dadosEm')), quando = em.toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}).replace(',', ' às');
+  const ha = min < 60 ? Math.max(1,Math.round(min))+' min' : min < 1440 ? Math.floor(min/60)+' h' : (Math.floor(min/1440)===1 ? '1 dia' : Math.floor(min/1440)+' dias');
+  const on = navigator.onLine;
+  e.innerHTML = `<span>⚠ <b>Dados de ${quando}</b> (há ${ha}). ${on ? (falhouSync ? 'Não consegui atualizar agora.' : 'Podem estar desatualizados.') : 'Sem internet: lançamentos de outras pessoas depois disso não aparecem.'}</span>${on ? '<button onclick="sincronizar()">Atualizar</button>' : ''}`;
+}
+// Com internet, busca os dados sozinho quando eles têm mais de 10 minutos (ao abrir, ao voltar para o app e ao trocar de tela).
+function autoAtualiza(){
+  if(!user || !navigator.onLine || enviando) return;
+  const min = idadeDados();
+  if(min !== null && min < AUTO_MIN) return;
+  if(Date.now() - ultTentativa < 60000) return;
+  ultTentativa = Date.now(); sincronizar(true);
+}
+document.addEventListener('visibilitychange', ()=>{ if(!document.hidden){ avisoDados(); autoAtualiza(); } });
+setInterval(avisoDados, 60000);
+
 /* ======= início ======= */
 function render(){ if(tela==='home') TELAS.home(); }
-window.addEventListener('online', ()=>{ render(); sincronizar(true); });
-window.addEventListener('offline', render);
+window.addEventListener('online', ()=>{ render(); avisoDados(); sincronizar(true); });
+window.addEventListener('offline', ()=>{ render(); avisoDados(); });
 if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
 try{ localStorage.removeItem('fl_dados'); }catch(e){}
 if(!user) ir('login'); else { ir('home'); sincronizar(true); }
