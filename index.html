@@ -112,7 +112,7 @@ table.lis input{padding:9px 6px;text-align:center;min-width:0}
 <script>
 /* ======= configuração ======= */
 const API = 'https://script.google.com/macros/s/AKfycbwY3RA38GPBgCJ4UZjjwriIR1XyGTsPuZ1mBAuUJ_TNuZuF4nQg7P_q68GT8okeYCZd/exec';
-const VERSAO = '2.12';
+const VERSAO = '2.13';
 
 /* ======= estado ======= */
 const LS = {
@@ -304,7 +304,7 @@ TELAS.home = () => {
   if(user.ver) return homeVer();
   const em = LS.get('dadosEm', null);
   const pend = fila.length, comErro = fila.filter(x=>x.erro).length;
-  const av = dados && dados.avisos ? dados.avisos : [];
+  const av = (dados && dados.avisos ? dados.avisos : []).filter(a=>a.k!=='rot'); // avisos do rotacionado ficam só na aba Avisos do Rotacionado
   const t = (k, nome, tl) => `<div class="tile" onclick="ir('${tl}')">${IC[k]}<span>${nome}</span></div>`;
   app.innerHTML = `${semDados()}
   <div class="card">
@@ -334,7 +334,7 @@ TELAS.home = () => {
 };
 function homeVer(){
   const em = LS.get('dadosEm', null);
-  const av = dados && dados.avisos ? dados.avisos : [];
+  const av = (dados && dados.avisos ? dados.avisos : []).filter(a=>a.k!=='rot'); // avisos do rotacionado ficam só na aba Avisos do Rotacionado
   app.innerHTML = `${semDados()}
   <div class="card"><div class="linha" style="justify-content:space-between"><div><b>${esc(user.nome)}</b> <span class="muted">· só consulta</span></div>
     <div class="muted">${em? 'atualizado '+new Date(em).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}) : 'sem dados'}</div></div>
@@ -415,9 +415,11 @@ TELAS.rot = (aba) => {
   if(!dados){ app.innerHTML = semDados(); return; }
   if(aba) abaRot=aba;
   if(!ROT || !rotMudou.size) rotCopia();
-  app.innerHTML = abas('abR',[['manejo','Manejo'],['lista','Lista'],['forragem','Forragem'],['resumo','Resumo'],['painel','Painel']],abaRot,'') + '<div id="rotC"></div>';
-  document.querySelectorAll('#abR button').forEach((b,i)=>b.onclick=()=>ir('rot',['manejo','lista','forragem','resumo','painel'][i]));
-  if(abaRot==='manejo') rotManejo(); else if(abaRot==='lista') rotLista(); else if(abaRot==='forragem') rotForragem(); else if(abaRot==='resumo') $('#rotC').innerHTML=rotResumo(dados.rot.datas, dados.rot.lotes); else $('#rotC').innerHTML=rotPainel();
+  const nAv = rotAvisosDados().total;
+  app.innerHTML = abas('abR',[['manejo','Manejo'],['lista','Lista'],['forragem','Forragem'],['resumo','Resumo'],['painel','Painel'],['avisos','Avisos'+(nAv?' ('+nAv+')':'')]],abaRot,'') + '<div id="rotC"></div>';
+  document.querySelectorAll('#abR button').forEach((b,i)=>b.onclick=()=>ir('rot',['manejo','lista','forragem','resumo','painel','avisos'][i]));
+  { const on = document.querySelector('#abR .on'); if(on && on.scrollIntoView) on.scrollIntoView({inline:'center', block:'nearest'}); }
+  if(abaRot==='avisos') $('#rotC').innerHTML=rotAvisos(); else if(abaRot==='manejo') rotManejo(); else if(abaRot==='lista') rotLista(); else if(abaRot==='forragem') rotForragem(); else if(abaRot==='resumo') $('#rotC').innerHTML=rotResumo(dados.rot.datas, dados.rot.lotes); else $('#rotC').innerHTML=rotPainel();
 };
 function rotAlertas(datas, lotes){
   const al=[];
@@ -431,7 +433,7 @@ function rotAlertas(datas, lotes){
 }
 function rotManejo(){
   const al = rotAlertas(ROT.datas, ROT.lotes);
-  let h = `<div class="card"><h3>ALERTAS</h3>${al.join('') || '<span class="muted">Nenhum alerta.</span>'}</div>`;
+  let h = '';
   modulos().forEach(m=>{
     const c = calcModulo(m, ROT.datas, ROT.lotes), ab = rotAberto.has(m.n);
     h += `<div class="mod"><div class="hd" onclick="rotToggle(${m.n})"><div><b>Módulo ${m.n}</b>${rotMudou.has(m.n)?' ✎':''}<small>${fmt(m.area,1)} ha · cap. ${Math.round(c.cap)} UA${c.capMed?' (medida)':''}${c.pastoAtual?' · '+esc(c.pastoAtual.nome):''}</small></div><span class="chip ${c.status}">${CHIP[c.status]}</span><span>${ab?'▲':'▼'}</span></div>`;
@@ -596,14 +598,31 @@ function rotResumo(datas, lotes){
 }
 function rotPainel(){
   const ms = modulos(); let cab=0, ua=0, area=0, cap=0; const st={acima:0,ok:0,aumentar:0,semlote:0}; const venc=[];
-  ms.forEach(m=>{ const c=calcModulo(m,dados.rot.datas,dados.rot.lotes); cab+=c.cab; ua+=c.ua; area+=m.area; cap+=c.cap; st[c.status]++; if(c.atrasado) venc.push(`Módulo ${m.n} · ${esc(c.pastoAtual.nome)} (venceu ${br(c.pastoAtual.saida)}, ${c.diasAtraso} d)`); });
+  ms.forEach(m=>{ const c=calcModulo(m,dados.rot.datas,dados.rot.lotes); cab+=c.cab; ua+=c.ua; area+=m.area; cap+=c.cap; st[c.status]++; });
   return `<div class="kpis">${kpi('Cabeças (cadastradas)',fmt(cab),'c')}${kpi('UA total',fmt(ua),'c')}${kpi('Lotados (diminuir)',`<i style="color:var(--vermelho)">${st.acima}</i>`,'c')}${kpi('Ajustados',`<i style="color:var(--ok)">${st.ok}</i>`,'c')}${kpi('Com folga',`<i style="color:#a86a00">${st.aumentar}</i>`,'c')}${kpi('Sem lote',st.semlote,'c')}</div>
   <div class="card" style="margin-top:12px"><h3>REBANHO × PASTO</h3><table>
     <tr><td>Área total dos módulos</td><td class="n"><b>${fmt(area,1)} ha</b></td></tr><tr><td>Capacidade total</td><td class="n"><b>${fmt(cap)} UA</b></td></tr>
     <tr><td>Rebanho (UA total)</td><td class="n"><b>${fmt(ua)} UA</b></td></tr><tr><td>Taxa de lotação atual</td><td class="n"><b>${fmt(ua/area,2)} UA/ha</b></td></tr>
     <tr><td>Capacidade de suporte</td><td class="n"><b>${fmt(cap/area,2)} UA/ha</b></td></tr></table></div>
-  <div class="card"><h3>PASTOS VENCIDOS</h3>${venc.map(v=>`<div style="color:var(--vermelho);padding:6px 0;border-bottom:1px solid #eee">⏰ ${v}</div>`).join('')||'<span class="muted">Nenhum.</span>'}</div>
   <h3 style="margin:18px 2px 8px">POR MÓDULO</h3>${ms.map(painelModulo).join('')}`;
+}
+// Aba Avisos do Rotacionado: pastos vencidos, mudanças de hoje/amanhã e módulos lotados (conta feita no celular, vale offline).
+function rotAvisosDados(){
+  const R = dados.regras||{}, antes = R.rot_antes && R.rot_antes.ativa!==false ? (+R.rot_antes.limite||0) : 1, H = hojeISO(), venc=[], prox=[], lot=[];
+  modulos().forEach(m=>{ const c = calcModulo(m, dados.rot.datas, dados.rot.lotes), pa = c.pastoAtual;
+    const i = pa ? c.pastos.indexOf(pa) : -1, px = i>=0 && c.pastos.length>1 ? c.pastos[(i+1)%c.pastos.length].nome : '';
+    if(pa && c.atrasado) venc.push({m:m.n, pasto:pa.nome, saida:pa.saida, dias:c.diasAtraso, px});
+    else if(pa){ const f = diasEntre(H, pa.saida); if(f!==null && f<=antes) prox.push({m:m.n, pasto:pa.nome, saida:pa.saida, falta:f, px}); }
+    if(c.status==='acima') lot.push({m:m.n, ua:c.ua, cap:c.cap, sobra:-c.difCab}); });
+  venc.sort((a,b)=>b.dias-a.dias);
+  return {venc, prox, lot, total: venc.length+prox.length+lot.length};
+}
+function rotAvisos(){
+  const A = rotAvisosDados(), li = (t,cor)=>`<div style="padding:8px 0;border-bottom:1px solid #eee${cor?';color:'+cor:''}">${t}</div>`, nada = '<span class="muted">Nenhum.</span>';
+  return `<div class="card"><h3>PASTOS VENCIDOS (${A.venc.length})</h3>${A.venc.map(v=>li(`⏰ <b>Módulo ${v.m} · ${esc(v.pasto)}</b><br>venceu ${br(v.saida)} (há ${v.dias} d)${v.px?' · próximo: '+esc(v.px):''}`,'var(--vermelho)')).join('')||nada}</div>
+  <div class="card"><h3>MUDAR HOJE OU AMANHÃ (${A.prox.length})</h3>${A.prox.map(v=>li(`<b>Módulo ${v.m} · ${esc(v.pasto)}</b><br>tirar ${v.falta<=0?'hoje':v.falta===1?'amanhã':'em '+v.falta+' dias'} (${br(v.saida).slice(0,5)})${v.px?' · próximo: '+esc(v.px):''}`,'#8a5d00')).join('')||nada}</div>
+  <div class="card"><h3>MÓDULOS LOTADOS (${A.lot.length})</h3>${A.lot.map(v=>li(`<b>Módulo ${v.m}</b><br>${fmt(v.ua,1)} UA para ${fmt(v.cap,1)} UA de capacidade · ${v.sobra===1?'sobra 1 cabeça':'sobram '+fmt(v.sobra)+' cabeças'}`,'var(--vermelho)')).join('')||nada}</div>
+  <p class="muted">Toque na aba Painel para ver cada módulo completo.</p>`;
 }
 // Painel de um módulo: onde o lote está, cabeças, lotação × capacidade, folga e próxima mudança; pastos em "ver pastos".
 function painelModulo(m){
