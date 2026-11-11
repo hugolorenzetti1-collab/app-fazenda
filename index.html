@@ -112,7 +112,7 @@ table.lis input{padding:9px 6px;text-align:center;min-width:0}
 <script>
 /* ======= configuração ======= */
 const API = 'https://script.google.com/macros/s/AKfycbwY3RA38GPBgCJ4UZjjwriIR1XyGTsPuZ1mBAuUJ_TNuZuF4nQg7P_q68GT8okeYCZd/exec';
-const VERSAO = '2.10';
+const VERSAO = '2.11';
 
 /* ======= estado ======= */
 const LS = {
@@ -602,7 +602,37 @@ function rotPainel(){
     <tr><td>Área total dos módulos</td><td class="n"><b>${fmt(area,1)} ha</b></td></tr><tr><td>Capacidade total</td><td class="n"><b>${fmt(cap)} UA</b></td></tr>
     <tr><td>Rebanho (UA total)</td><td class="n"><b>${fmt(ua)} UA</b></td></tr><tr><td>Taxa de lotação atual</td><td class="n"><b>${fmt(ua/area,2)} UA/ha</b></td></tr>
     <tr><td>Capacidade de suporte</td><td class="n"><b>${fmt(cap/area,2)} UA/ha</b></td></tr></table></div>
-  <div class="card"><h3>PASTOS VENCIDOS</h3>${venc.map(v=>`<div style="color:var(--vermelho);padding:6px 0;border-bottom:1px solid #eee">⏰ ${v}</div>`).join('')||'<span class="muted">Nenhum.</span>'}</div>`;
+  <div class="card"><h3>PASTOS VENCIDOS</h3>${venc.map(v=>`<div style="color:var(--vermelho);padding:6px 0;border-bottom:1px solid #eee">⏰ ${v}</div>`).join('')||'<span class="muted">Nenhum.</span>'}</div>
+  <h3 style="margin:18px 2px 8px">POR MÓDULO</h3>${ms.map(painelModulo).join('')}`;
+}
+// Painel de um módulo: onde o lote está, cabeças, lotação × capacidade, folga e próxima mudança; pastos em "ver pastos".
+function painelModulo(m){
+  const c = calcModulo(m, dados.rot.datas, dados.rot.lotes), H = hojeISO(), lote = dados.rot.lotes[String(m.n)] || [], med = (dados.rot.med||{ult:{}}).ult;
+  const ST = {acima:['t-vm','Lotado'], ok:['t-ok','Ajustado'], aumentar:['t-am','Com folga'], semlote:['t-cz','Sem lote']}[c.status];
+  const pa = c.pastoAtual, i = pa ? c.pastos.indexOf(pa) : -1, prox = i>=0 ? c.pastos[(i+1)%c.pastos.length] : null;
+  const falta = pa ? diasEntre(H, pa.saida) : null;
+  const quando = !pa ? '<span class="muted">sem data de entrada lançada</span>'
+    : c.atrasado ? `<b style="color:var(--vermelho)">venceu ${br(pa.saida).slice(0,5)} (há ${c.diasAtraso} d)</b>`
+    : `sai ${br(pa.saida).slice(0,5)} <span class="muted">(${falta<=0?'hoje':falta===1?'amanhã':'em '+falta+' dias'})</span>`;
+  const peso = c.cab ? lote.reduce((s,l)=>s+(+l.cabecas||0)*(+l.peso||0),0)/c.cab : 0;
+  const pct = c.cap>0 ? Math.min(100, c.ua/c.cap*100) : 0, cor = c.status==='acima'?'var(--vermelho)':c.status==='ok'?'var(--ok)':'#c98a2b';
+  const folga = !c.cab ? '' : c.difCab>0 ? `<b style="color:#8a5d00">${c.difCab===1?'Cabe mais 1 cabeça':'Cabem mais '+fmt(c.difCab)+' cabeças'}</b>` : c.difCab<0 ? `<b style="color:var(--vermelho)">${c.difCab===-1?'Sobra 1 cabeça':'Sobram '+fmt(-c.difCab)+' cabeças'}</b>` : '<b style="color:var(--ok)">Na conta</b>';
+  const EST = {atual:'<span class="tag t-ok">gado aqui</span>', atrasado:'<span class="tag t-vm">vencido</span>', feito:'<span class="muted">já passou</span>', prox:'<span class="muted">próximo</span>'};
+  return `<div class="card">
+    <div class="linha" style="justify-content:space-between"><h3 style="margin:0">Módulo ${m.n}</h3><span class="tag ${ST[0]}">${ST[1]}</span></div>
+    <table style="margin-top:6px">
+      <tr><td>Pasto atual</td><td class="n"><b>${pa?esc(pa.nome):'—'}</b></td></tr>
+      ${pa?`<tr><td>Entrou ${br(pa.entrada).slice(0,5)}</td><td class="n">${quando}</td></tr>`:`<tr><td colspan="2">${quando}</td></tr>`}
+      ${prox && c.pastos.length>1?`<tr><td>Próximo pasto</td><td class="n">${esc(prox.nome)}</td></tr>`:''}
+      <tr><td>Lote</td><td class="n">${c.cab?`<b>${fmt(c.cab)} cabeças</b> · ${fmt(peso)} kg<br><span class="muted">${lote.map(l=>esc(String(l.categoria||'').trim()||'sem categoria')+' '+fmt(+l.cabecas||0)).join(' · ')}</span>`:'<span class="muted">sem lote</span>'}</td></tr>
+      <tr><td>Lotação</td><td class="n"><b>${fmt(c.ua,1)} UA</b> <span class="muted">· ${fmt(m.area?c.ua/m.area:0,2)} UA/ha</span></td></tr>
+      <tr><td>Capacidade</td><td class="n"><b>${fmt(c.cap,1)} UA</b> <span class="muted">· ${c.capMed?'medição '+br(c.capMed.data).slice(0,5)+(c.capMed.n<m.pastos.length?' ('+c.capMed.n+' de '+m.pastos.length+' pastos)':''):'valor fixo, sem medição'}</span></td></tr>
+    </table>
+    ${c.cab?`<div style="height:8px;background:#e6e3da;border-radius:6px;margin:10px 0 6px;overflow:hidden"><div style="height:100%;width:${pct}%;background:${cor}"></div></div>
+    <div class="linha" style="justify-content:space-between;font-size:14px"><span class="muted">${fmt(c.cap>0?c.ua/c.cap*100:0)}% da capacidade</span>${folga}</div>`:''}
+    <details style="margin-top:10px"><summary style="font-weight:700;color:var(--verde);font-size:14px">Ver pastos (${m.pastos.length}) · ${fmt(m.area,1)} ha</summary>
+    <table style="margin-top:6px"><tr><th>Pasto</th><th class="n">ha</th><th class="n">Dias</th><th class="n">UA</th><th></th></tr>${c.pastos.map(p=>{ const u = med[m.n+'||'+p.nome]; return `<tr><td><b>${esc(p.nome.replace(/^PASTO\s+/,''))}</b>${p.entrada?`<br><span class="muted" style="font-size:12px">${br(p.entrada).slice(0,5)} a ${br(p.saida).slice(0,5)}</span>`:''}</td><td class="n">${fmt((dados.rot.areaUtil||{})[p.nome]||0,1)}</td><td class="n">${Math.ceil(p.dias-1e-9)}</td><td class="n">${u?fmt(u.cap,1):'—'}</td><td class="n">${EST[p.estado]||''}</td></tr>`; }).join('')}</table></details>
+  </div>`;
 }
 
 /* =================== CONTROLE DE GADO (igual ao app antigo) =================== */
