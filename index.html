@@ -112,7 +112,7 @@ table.lis input{padding:9px 6px;text-align:center;min-width:0}
 <script>
 /* ======= configuração ======= */
 const API = 'https://script.google.com/macros/s/AKfycbwY3RA38GPBgCJ4UZjjwriIR1XyGTsPuZ1mBAuUJ_TNuZuF4nQg7P_q68GT8okeYCZd/exec';
-const VERSAO = '2.19';
+const VERSAO = '2.20';
 
 /* ======= estado ======= */
 const LS = {
@@ -883,7 +883,7 @@ function salvaContagem(){
 }
 
 /* =================== BEBEDOURO =================== */
-const limBeb = () => dados && dados.regras && dados.regras.bebedouro ? dados.regras.bebedouro.limite : 7;
+const limBeb = l => { const R = dados && dados.regras || {}; return /^Módulo /.test(l||'') ? (R.bebedouro_rot ? R.bebedouro_rot.limite : 30) : (R.bebedouro ? R.bebedouro.limite : 7); };
 TELAS.bebedouro = () => {
   app.innerHTML = `${semDados()}<h2>Lavagem de bebedouro</h2><div class="card">
     <label>Local</label><select id="fLocal">${opts(locaisTodos().filter(l=>l!=='Outro'))}</select>
@@ -891,10 +891,10 @@ TELAS.bebedouro = () => {
     <div style="height:14px"></div><button class="btn prim full" onclick="salvaBeb()">Salvar</button></div>${dados?painelBeb():''}`;
 };
 function painelBeb(){
-  const b = dados.bebedouros, L=limBeb();
-  const lista = locaisTodos().filter(l=>l!=='Outro').map(l=>{ const u=b[l]; return {l,u,dd:u?diasDesde(u.data):null}; }).sort((a,c)=>(c.dd==null?999:c.dd)-(a.dd==null?999:a.dd));
-  return `<div class="card"><h3>Última lavagem (atrasado depois de ${L} dias)</h3><table><tr><th>Local</th><th>Última</th><th class="n">Dias</th></tr>
-    ${lista.map(x=>`<tr><td>${esc(x.l)}</td><td>${x.u?br(x.u.data):'—'}</td><td class="n">${x.dd==null?'<span class="tag t-cz">nunca</span>':`<span class="tag ${x.dd>=L?'t-vm':x.dd>=L-1?'t-am':'t-ok'}">${x.dd}</span>`}</td></tr>`).join('')}</table></div>`;
+  const b = dados.bebedouros;
+  const lista = locaisTodos().filter(l=>l!=='Outro').map(l=>{ const u=b[l]; return {l,u,dd:u?diasDesde(u.data):null}; }).sort((a,c)=>(c.dd==null?999:c.dd-limBeb(c.l))-(a.dd==null?999:a.dd-limBeb(a.l)));
+  return `<div class="card"><h3>Última lavagem</h3><div class="status" style="margin-bottom:8px">Atrasado depois de ${limBeb('Pasto')} dias na TIP, curral e sede, e de ${limBeb('Módulo 1')} dias no rotacionado.</div><table><tr><th>Local</th><th>Última</th><th class="n">Dias</th></tr>
+    ${lista.map(x=>`<tr><td>${esc(x.l)}</td><td>${x.u?br(x.u.data):'—'}</td><td class="n">${x.dd==null?'<span class="tag t-cz">nunca</span>':`<span class="tag ${x.dd>=limBeb(x.l)?'t-vm':x.dd>=limBeb(x.l)-1?'t-am':'t-ok'}">${x.dd}</span>`}</td></tr>`).join('')}</table></div>`;
 }
 function salvaBeb(){ lancar('bebedouro',{local:val('fLocal'),data:val('fData'),obs:val('fObs')}); salvo(1); }
 
@@ -1069,7 +1069,7 @@ TELAS.regras = () => {
   if(!dados || !dados.regras){ app.innerHTML = semDados(); return; }
   const R = dados.regras;
   app.innerHTML = `<h2>Regras dos avisos</h2><div class="card">${Object.keys(R).map(k=>`<div style="display:grid;grid-template-columns:30px 1fr 80px;gap:8px;align-items:center;padding:8px 0;border-bottom:1px solid #eee"><input type="checkbox" id="ra_${k}" ${R[k].ativa?'checked':''}><span>${esc(R[k].desc)}</span><input type="number" inputmode="numeric" id="rl_${k}" value="${R[k].limite}"></div>`).join('')}
-  <div class="status">Os avisos vão para o grupo do Telegram às 6h, 12h e 18h e aparecem na tela inicial.</div>
+  <div class="status">Os avisos vão para o grupo do Telegram uma vez por dia, às 5h.</div>
   <div style="height:14px"></div><button class="btn prim full" onclick="salvaRegras()">Salvar regras</button></div>`;
 };
 function salvaRegras(){ const r={}; Object.keys(dados.regras).forEach(k=>{ r[k]={limite:+val('rl_'+k)||0, ativa:document.getElementById('ra_'+k).checked}; }); lancar('regras',{regras:r}); salvo(1); }
