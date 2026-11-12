@@ -112,7 +112,7 @@ table.lis input{padding:9px 6px;text-align:center;min-width:0}
 <script>
 /* ======= configuração ======= */
 const API = 'https://script.google.com/macros/s/AKfycbwY3RA38GPBgCJ4UZjjwriIR1XyGTsPuZ1mBAuUJ_TNuZuF4nQg7P_q68GT8okeYCZd/exec';
-const VERSAO = '2.22';
+const VERSAO = '2.23';
 
 /* ======= estado ======= */
 const LS = {
@@ -232,7 +232,7 @@ APLICA.contagem = (D,d) => { D.contagens.unshift({data:d.data,local:d.local,cab:
         if(idx>=0){ Object.keys(D.rot.datas).forEach(k=>{ const s=k.split('||'); if(s[0]===n && ordem.indexOf(s[1])>=idx) delete D.rot.datas[k]; }); D.rot.datas[n+'||'+d.para]=d.data; } } }
   }catch(e){} };
 APLICA.tarefa = (D,d) => { D.tarefas = D.tarefas||[]; const ag = new Date().toISOString().slice(0,16), t = D.tarefas.find(x=>x.id===d.tid);
-  if(d.acao==='nova'){ if(!t) D.tarefas.push({id:d.tid,criada:ag,por:user.nome,titulo:d.titulo,local:d.local||'',prazo:d.prazo||'',prio:d.prio||'Normal',status:'A fazer',atu:ag,atuPor:user.nome,obs:'',feita:'',foto:d.foto?'fila':'',fotoFeito:''}); return; }
+  if(d.acao==='nova'){ if(!t) D.tarefas.push({id:d.tid,criada:ag,por:user.nome,titulo:d.titulo,local:d.local||'',prazo:d.prazo||'',prio:d.prio||'Normal',status:'A fazer',atu:ag,atuPor:user.nome,obs:'',feita:'',foto:d.foto?'fila':'',fotoFeito:'',cod:''}); return; }
   if(!t) return;
   if(d.acao==='excluir'){ D.tarefas = D.tarefas.filter(x=>x.id!==d.tid); return; }
   if(d.acao==='status'){ t.status=d.status; t.atu=ag; t.atuPor=user.nome; if(d.obs!=null) t.obs=d.obs; t.feita = d.status==='Feito'?ag:''; if(d.foto && d.status==='Feito') t.fotoFeito='fila'; } };
@@ -332,6 +332,7 @@ TELAS.home = () => {
     </div>
   </div>
   ${av.length?`<div class="avisos" onclick="ir('painel')"><b>⚠ ${av.length} aviso(s)</b>${av.slice(0,4).map(a=>`<div>• ${esc(a.t)}</div>`).join('')}${av.length>4?`<div>… e mais ${av.length-4}</div>`:''}</div>`:''}
+  ${(ta=>ta.length?`<div class="avisos" onclick="ir('tarefas')"><b>📋 ${ta.length} tarefa(s) pedindo atenção</b>${ta.slice(0,5).map(a=>`<div>• ${esc(a.t)}</div>`).join('')}${ta.length>5?`<div>… e mais ${ta.length-5}</div>`:''}</div>`:'')(tarAvisos())}
   <label>Fazenda</label><select id="selFaz" onchange="fazenda=this.value;LS.set('fazenda',fazenda)">${opts(FAZENDAS, fazenda)}</select>
   <div style="height:12px"></div>
   <div class="grade">
@@ -1009,6 +1010,8 @@ function tarPegaFoto(inp){ const f = inp.files && inp.files[0]; if(!f) return; c
   img.src = url; }
 const tarCampoFoto = rot => `<label>${rot}</label><input type="file" accept="image/*" onchange="tarPegaFoto(this)"><img id="tFotoPrev" class="oculto" style="width:100%;border-radius:10px;margin-top:8px">`;
 const tarBtFoto = (u, rot) => !u ? '' : u==='fila' ? `<span class="tag t-cz">📷 ${rot} (na fila)</span>` : `<button class="btn peq" onclick="verFoto('${esc(u)}')">📷 ${rot}</button>`;
+// Avisos de tarefas na tela inicial: atrasadas, as que vencem hoje e as urgentes abertas (calculado no celular).
+function tarAvisos(){ const H = hojeISO(), c = t => (t.cod?t.cod+' ':'')+t.titulo; return (dados && dados.tarefas || []).filter(t=>t.status!=='Feito').map(t => t.prazo && t.prazo<H ? {o:0,t:'Atrasada: '+c(t)+' (prazo '+br(t.prazo)+')'} : t.prio==='Urgente' ? {o:1,t:'Urgente: '+c(t)} : t.prazo===H ? {o:2,t:'Vence hoje: '+c(t)} : null).filter(Boolean).sort((a,b)=>a.o-b.o); }
 function tarAbertas(){ return dados && dados.tarefas ? dados.tarefas.filter(t=>t.status!=='Feito').length : 0; }
 function tarOrdem(a,b){ const u = x=>x.prio==='Urgente'?0:1; return u(a)-u(b) || (a.prazo||'9999').localeCompare(b.prazo||'9999') || (a.criada||'').localeCompare(b.criada||''); }
 TELAS.tarefas = (aba) => {
@@ -1019,6 +1022,7 @@ TELAS.tarefas = (aba) => {
   const lista = T.filter(t=>t.status===abaTar).sort(abaTar==='Feito' ? (a,b)=>(b.feita||'').localeCompare(a.feita||'') : tarOrdem);
   const cartao = t => { const atr = t.prazo && t.prazo<H && t.status!=='Feito', hj = t.prazo===H && t.status!=='Feito', pode = user.admin || t.por===user.nome;
     return `<div class="card" style="${t.prio==='Urgente'&&t.status!=='Feito'?'border-left:5px solid var(--vermelho)':''}">
+      <div class="muted" style="font-size:12px;font-weight:700;letter-spacing:.5px">${t.cod?esc(t.cod):'FL-… (código sai ao sincronizar)'}</div>
       <div style="font-weight:700;font-size:16px;white-space:pre-wrap">${esc(t.titulo)}</div>
       <div class="linha" style="margin-top:6px;gap:6px">${t.prio==='Urgente'?'<span class="tag t-vm">Urgente</span>':''}${t.prazo?`<span class="tag ${atr?'t-vm':hj?'t-am':'t-cz'}">${atr?'Atrasada · ':hj?'Hoje · ':'Até '}${br(t.prazo)}</span>`:''}${t.local?`<span class="tag t-az">${esc(t.local)}</span>`:''}</div>
       <div class="muted" style="font-size:12px;margin-top:6px">Passada por ${esc(t.por)} em ${br(t.criada)}${t.status==='Fazendo'?` · começou ${esc(t.atuPor)} em ${br(t.atu)}`:''}${t.status==='Feito'?` · feita por ${esc(t.atuPor)} em ${br(t.feita||t.atu)}`:''}</div>
