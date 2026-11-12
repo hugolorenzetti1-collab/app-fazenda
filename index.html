@@ -112,7 +112,7 @@ table.lis input{padding:9px 6px;text-align:center;min-width:0}
 <script>
 /* ======= configuração ======= */
 const API = 'https://script.google.com/macros/s/AKfycbwY3RA38GPBgCJ4UZjjwriIR1XyGTsPuZ1mBAuUJ_TNuZuF4nQg7P_q68GT8okeYCZd/exec';
-const VERSAO = '2.21';
+const VERSAO = '2.22';
 
 /* ======= estado ======= */
 const LS = {
@@ -232,10 +232,10 @@ APLICA.contagem = (D,d) => { D.contagens.unshift({data:d.data,local:d.local,cab:
         if(idx>=0){ Object.keys(D.rot.datas).forEach(k=>{ const s=k.split('||'); if(s[0]===n && ordem.indexOf(s[1])>=idx) delete D.rot.datas[k]; }); D.rot.datas[n+'||'+d.para]=d.data; } } }
   }catch(e){} };
 APLICA.tarefa = (D,d) => { D.tarefas = D.tarefas||[]; const ag = new Date().toISOString().slice(0,16), t = D.tarefas.find(x=>x.id===d.tid);
-  if(d.acao==='nova'){ if(!t) D.tarefas.push({id:d.tid,criada:ag,por:user.nome,titulo:d.titulo,local:d.local||'',prazo:d.prazo||'',prio:d.prio||'Normal',status:'A fazer',atu:ag,atuPor:user.nome,obs:'',feita:''}); return; }
+  if(d.acao==='nova'){ if(!t) D.tarefas.push({id:d.tid,criada:ag,por:user.nome,titulo:d.titulo,local:d.local||'',prazo:d.prazo||'',prio:d.prio||'Normal',status:'A fazer',atu:ag,atuPor:user.nome,obs:'',feita:'',foto:d.foto?'fila':'',fotoFeito:''}); return; }
   if(!t) return;
   if(d.acao==='excluir'){ D.tarefas = D.tarefas.filter(x=>x.id!==d.tid); return; }
-  if(d.acao==='status'){ t.status=d.status; t.atu=ag; t.atuPor=user.nome; if(d.obs!=null) t.obs=d.obs; t.feita = d.status==='Feito'?ag:''; } };
+  if(d.acao==='status'){ t.status=d.status; t.atu=ag; t.atuPor=user.nome; if(d.obs!=null) t.obs=d.obs; t.feita = d.status==='Feito'?ag:''; if(d.foto && d.status==='Feito') t.fotoFeito='fila'; } };
 APLICA.bebedouro = (D,d) => { const u=D.bebedouros[d.local]; if(!u||u.data<=d.data) D.bebedouros[d.local]={data:d.data,obs:d.obs}; D.bebHist.unshift({data:d.data,local:d.local,user:user.nome}); };
 APLICA.cocho = (D,d) => { D.ultCocho[d.modulo]={data:d.data,produto:d.produto,sacos:+d.sacos,kg:+d.kg}; D.cochoHist.unshift({data:d.data,modulo:d.modulo,pasto:d.pasto,produto:d.produto,sacos:+d.sacos,kg:+d.kg}); };
 APLICA.maquina = (D,d) => D.maqHist.unshift({data:d.data,maquina:d.maquina,tipo:d.tipo,horimetro:+d.horimetro,litros:+d.litros,desc:d.desc,user:user.nome});
@@ -999,10 +999,16 @@ function resumo(x){ const d=x.d||{}; const mf=()=>[(+d.machos?d.machos+' M':''),
   case 'cocho': return 'Módulo '+d.modulo+' · '+d.sacos+' sacos';
   case 'maquina': return d.maquina+' · '+d.tipo;
   case 'medicao': return d.pasto+' · '+d.altura+' cm';
-  case 'tarefa': return d.acao==='nova' ? 'Nova: '+d.titulo : d.acao==='excluir' ? 'Excluiu: '+(d.titulo||'') : (d.titulo||'')+' → '+d.status;
+  case 'tarefa': return (d.acao==='nova' ? 'Nova: '+d.titulo : d.acao==='excluir' ? 'Excluiu: '+(d.titulo||'') : ((d.titulo||'')+' → '+d.status))+(d.foto?' 📷':'');
   case 'maq_nova': return d.nome; } return ''; }
 /* =================== TAREFAS (quadro A fazer / Fazendo / Feito) =================== */
-let abaTar = 'A fazer', tarNova = false, tarConc = '';
+let abaTar = 'A fazer', tarNova = false, tarConc = '', tarFoto = null;
+function tarPegaFoto(inp){ const f = inp.files && inp.files[0]; if(!f) return; const img = new Image(), url = URL.createObjectURL(f);
+  img.onload = () => { const max=1024, k=Math.min(1, max/Math.max(img.width,img.height)), c=document.createElement('canvas'); c.width=Math.round(img.width*k); c.height=Math.round(img.height*k); c.getContext('2d').drawImage(img,0,0,c.width,c.height);
+    tarFoto = c.toDataURL('image/jpeg',0.6); const p=$('#tFotoPrev'); if(p){ p.src=tarFoto; p.classList.remove('oculto'); } URL.revokeObjectURL(url); };
+  img.src = url; }
+const tarCampoFoto = rot => `<label>${rot}</label><input type="file" accept="image/*" onchange="tarPegaFoto(this)"><img id="tFotoPrev" class="oculto" style="width:100%;border-radius:10px;margin-top:8px">`;
+const tarBtFoto = (u, rot) => !u ? '' : u==='fila' ? `<span class="tag t-cz">📷 ${rot} (na fila)</span>` : `<button class="btn peq" onclick="verFoto('${esc(u)}')">📷 ${rot}</button>`;
 function tarAbertas(){ return dados && dados.tarefas ? dados.tarefas.filter(t=>t.status!=='Feito').length : 0; }
 function tarOrdem(a,b){ const u = x=>x.prio==='Urgente'?0:1; return u(a)-u(b) || (a.prazo||'9999').localeCompare(b.prazo||'9999') || (a.criada||'').localeCompare(b.criada||''); }
 TELAS.tarefas = (aba) => {
@@ -1017,24 +1023,27 @@ TELAS.tarefas = (aba) => {
       <div class="linha" style="margin-top:6px;gap:6px">${t.prio==='Urgente'?'<span class="tag t-vm">Urgente</span>':''}${t.prazo?`<span class="tag ${atr?'t-vm':hj?'t-am':'t-cz'}">${atr?'Atrasada · ':hj?'Hoje · ':'Até '}${br(t.prazo)}</span>`:''}${t.local?`<span class="tag t-az">${esc(t.local)}</span>`:''}</div>
       <div class="muted" style="font-size:12px;margin-top:6px">Passada por ${esc(t.por)} em ${br(t.criada)}${t.status==='Fazendo'?` · começou ${esc(t.atuPor)} em ${br(t.atu)}`:''}${t.status==='Feito'?` · feita por ${esc(t.atuPor)} em ${br(t.feita||t.atu)}`:''}</div>
       ${t.obs?`<div class="status" style="margin-top:6px">Obs.: ${esc(t.obs)}</div>`:''}
-      ${tarConc===t.id ? `<label>Observação (opcional)</label><input id="tObs" placeholder="Ex.: troquei 3 lascas"><div class="linha" style="margin-top:8px"><button class="btn prim" onclick="tarStatus('${t.id}','Feito',1)">✔ Confirmar feito</button><button class="btn" onclick="tarConc='';TELAS.tarefas()">Cancelar</button></div>`
-      : `<div class="linha" style="margin-top:10px">${t.status==='A fazer'?`<button class="btn peq" onclick="tarStatus('${t.id}','Fazendo')">▶ Começar</button>`:''}${t.status!=='Feito'?`<button class="btn peq prim" onclick="tarConc='${t.id}';TELAS.tarefas()">✔ Feito</button>`:''}${t.status==='Fazendo'?`<button class="btn peq" onclick="tarStatus('${t.id}','A fazer')">↩ Voltar</button>`:''}${t.status==='Feito'?`<button class="btn peq" onclick="tarStatus('${t.id}','A fazer')">↩ Reabrir</button>`:''}${pode?`<button class="btn peq" style="margin-left:auto;border-color:var(--borda);color:#777" onclick="tarExcluir('${t.id}',this)">Excluir</button>`:''}</div>`}
+      ${t.foto||t.fotoFeito?`<div class="linha" style="margin-top:8px;gap:6px">${tarBtFoto(t.foto,'Foto do serviço')}${tarBtFoto(t.fotoFeito,'Foto do feito')}</div>`:''}
+      ${tarConc===t.id ? `<label>Observação (opcional)</label><input id="tObs" placeholder="Ex.: troquei 3 lascas">${tarCampoFoto('Foto do serviço pronto (opcional)')}<div class="linha" style="margin-top:8px"><button class="btn prim" onclick="tarStatus('${t.id}','Feito',1)">✔ Confirmar feito</button><button class="btn" onclick="tarConc='';TELAS.tarefas()">Cancelar</button></div>`
+      : `<div class="linha" style="margin-top:10px">${t.status==='A fazer'?`<button class="btn peq" onclick="tarStatus('${t.id}','Fazendo')">▶ Começar</button>`:''}${t.status!=='Feito'?`<button class="btn peq prim" onclick="tarFoto=null;tarConc='${t.id}';TELAS.tarefas()">✔ Feito</button>`:''}${t.status==='Fazendo'?`<button class="btn peq" onclick="tarStatus('${t.id}','A fazer')">↩ Voltar</button>`:''}${t.status==='Feito'?`<button class="btn peq" onclick="tarStatus('${t.id}','A fazer')">↩ Reabrir</button>`:''}${pode?`<button class="btn peq" style="margin-left:auto;border-color:var(--borda);color:#777" onclick="tarExcluir('${t.id}',this)">Excluir</button>`:''}</div>`}
     </div>`; };
   app.innerHTML = `<h2>Tarefas</h2>${tarNova ? `<div class="card"><label>Serviço</label><textarea id="tTit" rows="2" style="width:100%" placeholder="O que é para fazer"></textarea>
       <label>Local / pasto</label><input id="tLocal" placeholder="Ex.: Pasto 21, curral, sede">
       <label>Prazo (opcional)</label><input type="date" id="tPrazo">
+      ${tarCampoFoto('Foto (opcional)')}
       <label>Prioridade</label>${seg('tPrio',[['Normal','Normal'],['Urgente','Urgente']],'Normal')}
       <div class="linha" style="margin-top:12px"><button class="btn prim" onclick="tarSalva()">Salvar tarefa</button><button class="btn" onclick="tarNova=false;ir('tarefas')">Cancelar</button></div></div>`
-    : `<button class="btn prim full" style="margin-bottom:12px" onclick="tarNova=true;ir('tarefas')">+ Nova tarefa</button>`}
+    : `<button class="btn prim full" style="margin-bottom:12px" onclick="tarFoto=null;tarNova=true;ir('tarefas')">+ Nova tarefa</button>`}
     ${abas('abT',L,abaTar,'')}${lista.length ? lista.map(cartao).join('') : `<p class="muted" style="text-align:center;margin-top:24px">${abaTar==='Feito'?'Nenhuma tarefa concluída nos últimos 30 dias.':'Nada aqui.'}</p>`}`;
   document.querySelectorAll('#abT button').forEach((b,i)=>b.onclick=()=>{ tarConc=''; ir('tarefas',L[i][0]); });
 };
 function tarSalva(){ const titulo = ($('#tTit').value||'').trim(); if(!titulo) return toast('Escreva o serviço');
-  if(!lancar('tarefa',{acao:'nova',tid:uid(),titulo,local:val('tLocal'),prazo:val('tPrazo'),prio:val('tPrio')})) return;
-  tarNova=false; abaTar='A fazer'; salvo(1,'tarefas'); }
+  const d = {acao:'nova',tid:uid(),titulo,local:val('tLocal'),prazo:val('tPrazo'),prio:val('tPrio')}; if(tarFoto) d.foto = tarFoto;
+  if(!lancar('tarefa',d)) return;
+  tarFoto=null; tarNova=false; abaTar='A fazer'; salvo(1,'tarefas'); }
 function tarStatus(id, status, comObs){ const t = (dados.tarefas||[]).find(x=>x.id===id); if(!t) return;
-  const d = {acao:'status',tid:id,status,titulo:t.titulo}; if(comObs) d.obs = val('tObs'); else if(status!=='Feito' && t.status==='Feito') d.obs = '';
-  if(!lancar('tarefa',d)) return; tarConc=''; salvo(1,'tarefas'); }
+  const d = {acao:'status',tid:id,status,titulo:t.titulo}; if(comObs){ d.obs = val('tObs'); if(tarFoto) d.foto = tarFoto; } else if(status!=='Feito' && t.status==='Feito') d.obs = '';
+  if(!lancar('tarefa',d)) return; tarFoto=null; tarConc=''; salvo(1,'tarefas'); }
 function tarExcluir(id, bt){ if(bt.dataset.ok!=='1'){ bt.dataset.ok='1'; bt.textContent='Excluir mesmo?'; bt.style.color='var(--vermelho)'; bt.style.borderColor='var(--vermelho)'; return; }
   const t = (dados.tarefas||[]).find(x=>x.id===id); if(!lancar('tarefa',{acao:'excluir',tid:id,titulo:t?t.titulo:''})) return; salvo(1,'tarefas'); }
 /* =================== LOG (quem lançou, quando e o quê) =================== */
