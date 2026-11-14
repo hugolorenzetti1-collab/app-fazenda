@@ -112,7 +112,7 @@ table.lis input{padding:9px 6px;text-align:center;min-width:0}
 <script>
 /* ======= configuração ======= */
 const API = 'https://script.google.com/macros/s/AKfycbwY3RA38GPBgCJ4UZjjwriIR1XyGTsPuZ1mBAuUJ_TNuZuF4nQg7P_q68GT8okeYCZd/exec';
-const VERSAO = '2.25';
+const VERSAO = '2.26';
 
 /* ======= estado ======= */
 const LS = {
@@ -452,10 +452,10 @@ TELAS.rot = (aba) => {
   if(aba) abaRot=aba;
   if(!ROT || !rotMudou.size) rotCopia();
   const nAv = rotAvisosDados().total;
-  app.innerHTML = abas('abR',[['manejo','Manejo'],['lista','Lista'],['forragem','Forragem'],['resumo','Resumo'],['painel','Painel'],['avisos','Avisos'+(nAv?' ('+nAv+')':'')]],abaRot,'') + '<div id="rotC"></div>';
-  document.querySelectorAll('#abR button').forEach((b,i)=>b.onclick=()=>ir('rot',['manejo','lista','forragem','resumo','painel','avisos'][i]));
+  app.innerHTML = abas('abR',[['manejo','Manejo'],['lista','Lista'],['forragem','Forragem'],['resumo','Resumo'],['painel','Painel'],['rebanho','Rebanho'],['avisos','Avisos'+(nAv?' ('+nAv+')':'')]],abaRot,'') + '<div id="rotC"></div>';
+  document.querySelectorAll('#abR button').forEach((b,i)=>b.onclick=()=>{ rbEd=null; ir('rot',['manejo','lista','forragem','resumo','painel','rebanho','avisos'][i]); });
   { const on = document.querySelector('#abR .on'); if(on && on.scrollIntoView) on.scrollIntoView({inline:'center', block:'nearest'}); }
-  if(abaRot==='avisos') $('#rotC').innerHTML=rotAvisos(); else if(abaRot==='manejo') rotManejo(); else if(abaRot==='lista') rotLista(); else if(abaRot==='forragem') rotForragem(); else if(abaRot==='resumo') $('#rotC').innerHTML=rotResumo(dados.rot.datas, dados.rot.lotes); else $('#rotC').innerHTML=rotPainel();
+  if(abaRot==='avisos') $('#rotC').innerHTML=rotAvisos(); else if(abaRot==='rebanho') $('#rotC').innerHTML=rotRebanho(); else if(abaRot==='manejo') rotManejo(); else if(abaRot==='lista') rotLista(); else if(abaRot==='forragem') rotForragem(); else if(abaRot==='resumo') $('#rotC').innerHTML=rotResumo(dados.rot.datas, dados.rot.lotes); else $('#rotC').innerHTML=rotPainel();
 };
 function rotAlertas(datas, lotes){
   const al=[];
@@ -656,6 +656,67 @@ function termometroUA(ua, cap){
     <div class="kpis k3" style="margin-top:10px">${kpi('Fazenda pede',fmt(cap)+' UA')}${kpi('Realizado',fmt(ua)+' UA')}${kpi(dif>=0?'Falta':'Passou',`<i style="font-style:normal;color:${cor}">${fmt(Math.abs(dif))} UA</i>`)}</div>
     <svg viewBox="0 0 ${W} 96" style="width:100%;height:auto;display:block;margin-top:6px">${g}</svg>
     <div class="muted" style="font-size:12px">Pedido = capacidade somada dos módulos (pela última medição de forragem; onde não tem medição, o valor fixo do módulo). Realizado = UA dos lotes que estão nos módulos. A faixa verde clara é o ponto certo (85% a 100%).</div></div>`;
+}
+// Rebanho do rotacionado, lote por lote. Aqui também se corrige o lote: categoria, cabeças, peso e o pasto onde está
+// (escolhido na lista); salvar grava o lote e a entrada no pasto, igual ao Manejo (tipo 'manejo').
+let rbEd = null;   // null | 'novo' | 'mod|indice'
+const RB_CATS = ['Bezerros','Bezerras','Garrotes','Novilhas','Bois','Vacas','Touros'];
+function rbForm(mod, i){
+  const novo = mod==null, l = novo ? {categoria:'',cabecas:'',peso:''} : (dados.rot.lotes[String(mod)]||[])[i] || {};
+  const c = novo ? null : calcModulo(modulos().find(m=>String(m.n)===String(mod)), dados.rot.datas, dados.rot.lotes), at = c && c.pastoAtual ? mod+'||'+c.pastoAtual.nome : '';
+  const cats = [...new Set(RB_CATS.concat(Object.values(dados.rot.lotes).flat().map(x=>String(x.categoria||'').trim()).filter(Boolean)))];
+  return `<div class="card" style="border:2px solid var(--verde)"><h3 style="margin-top:0">${novo?'Novo lote':'Corrigir lote'}</h3>
+    <label>Categoria</label><input id="rbCat" list="rbCats" value="${esc(l.categoria||'')}" placeholder="Ex.: Bois"><datalist id="rbCats">${cats.map(x=>`<option value="${esc(x)}">`).join('')}</datalist>
+    <div class="linha" style="gap:10px"><div style="flex:1"><label>Cabeças</label><input id="rbCab" type="number" inputmode="numeric" value="${l.cabecas||''}"></div><div style="flex:1"><label>Peso médio (kg)</label><input id="rbPeso" type="number" inputmode="decimal" value="${l.peso||''}"></div></div>
+    <label>Pasto onde está</label><select id="rbPasto" onchange="rbAviso()"><option value="">Escolha o pasto…</option>${modulos().map(m=>`<optgroup label="Módulo ${m.n}">${m.pastos.map(p=>`<option value="${m.n}||${esc(p[0])}" ${m.n+'||'+p[0]===at?'selected':''}>${esc(p[0])}</option>`).join('')}</optgroup>`).join('')}</select>
+    <label>Data de entrada no pasto</label><input type="date" id="rbData" value="${hojeISO()}">
+    <div class="status" id="rbAv" style="margin-top:8px"></div>
+    <div class="linha" style="margin-top:12px"><button class="btn prim" onclick="rbSalva()">Salvar</button>${novo?'':`<button class="btn" style="color:var(--vermelho);border-color:var(--vermelho)" onclick="rbTira(this)">Tirar lote</button>`}<button class="btn" onclick="rbEd=null;TELAS.rot()">Cancelar</button></div></div>`;
+}
+function rbOrigem(){ if(!rbEd || rbEd==='novo') return null; const s = rbEd.split('|'); const m = modulos().find(x=>String(x.n)===s[0]), c = calcModulo(m, dados.rot.datas, dados.rot.lotes); return {mod:s[0], i:+s[1], atual: c.pastoAtual ? c.pastoAtual.nome : ''}; }
+function rbAviso(){ const e = $('#rbAv'); if(!e) return; const v = val('rbPasto'), o = rbOrigem(); if(!v){ e.textContent=''; return; } const s = v.split('||'), outros = (dados.rot.lotes[s[0]]||[]).filter((l,k)=>+l.cabecas>0 && !(o && o.mod===s[0] && k===o.i));
+  let t = ''; if(o && o.mod!==s[0]) t = `O lote sai do módulo ${o.mod} e vai para o módulo ${s[0]}. `; else if(o && o.atual && o.atual!==s[1]) t = `O gado do módulo ${s[0]} passa para o ${s[1]} na data acima. `; else if(o) t = 'Continua no mesmo pasto; a data não muda. ';
+  if(outros.length){ const ct = calcModulo(modulos().find(x=>String(x.n)===s[0]), dados.rot.datas, dados.rot.lotes), onde = ct.pastoAtual ? ct.pastoAtual.nome : '';
+    t += `No módulo ${s[0]} ${outros.length===1?'já tem outro lote':'já tem outros '+outros.length+' lotes'} (${outros.map(l=>fmt(+l.cabecas)+' '+String(l.categoria||'').trim()).join(', ')})${onde && onde!==s[1] ? `, hoje no ${onde}: ATENÇÃO, ele também passa para o ${s[1]}, porque o módulo tem um pasto só por vez.` : '; ficam juntos no mesmo pasto.'}`; }
+  e.textContent = t; }
+// datas do módulo com o gado entrando no pasto escolhido: mantém os pastos de trás, os da frente recomeçam.
+function rbDatas(mod, pasto, data){ const m = modulos().find(x=>String(x.n)===String(mod)), ordem = m.pastos.map(p=>p[0]), idx = ordem.indexOf(pasto), d = {};
+  Object.keys(dados.rot.datas).forEach(k=>{ const s = k.split('||'); if(s[0]===String(mod)){ const q = ordem.indexOf(s[1]); if(q>=0 && q<idx) d[s[1]] = dados.rot.datas[k]; } }); d[pasto] = data; return d; }
+function rbSalva(){
+  const cat = (val('rbCat')||'').trim(), cab = +val('rbCab'), peso = +val('rbPeso'), v = val('rbPasto'), data = val('rbData') || hojeISO();
+  if(!cat) return toast('Informe a categoria'); if(!(cab>0)) return toast('Informe as cabeças'); if(!(peso>0)) return toast('Informe o peso'); if(!v) return toast('Escolha o pasto');
+  const s = v.split('||'), mt = s[0], pasto = s[1], o = rbOrigem(), novo = {categoria:cat, cabecas:cab, peso}; let n = 0;
+  const copia = m => (dados.rot.lotes[String(m)]||[]).map(l=>({categoria:l.categoria, cabecas:+l.cabecas||0, peso:+l.peso||0}));
+  const ct = calcModulo(modulos().find(x=>String(x.n)===mt), dados.rot.datas, dados.rot.lotes), atualT = ct.pastoAtual ? ct.pastoAtual.nome : '';
+  if(o && o.mod===mt){ const L = copia(mt); L[o.i] = novo; const d = {modulo:mt, lotes:L}; if(atualT!==pasto) d.datas = rbDatas(mt, pasto, data); if(!lancar('manejo', d)) return; n++; }
+  else { if(o){ const L = copia(o.mod); L.splice(o.i,1); const d = {modulo:o.mod, lotes:L}; if(!L.some(l=>l.cabecas>0)) d.datas = {}; if(!lancar('manejo', d)) return; n++; }
+    const L = copia(mt).filter(l=>l.cabecas>0); L.push(novo); const d = {modulo:mt, lotes:L}; if(atualT!==pasto) d.datas = rbDatas(mt, pasto, data); if(!lancar('manejo', d)) return; n++; }
+  rbEd = null; rotCopia(); salvo(n, 'rot');
+}
+function rbTira(bt){ if(bt.dataset.ok!=='1'){ bt.dataset.ok='1'; bt.textContent='Tirar mesmo?'; return; } const o = rbOrigem(); if(!o) return;
+  const L = (dados.rot.lotes[o.mod]||[]).map(l=>({categoria:l.categoria, cabecas:+l.cabecas||0, peso:+l.peso||0})); L.splice(o.i,1); const d = {modulo:o.mod, lotes:L}; if(!L.some(l=>l.cabecas>0)) d.datas = {};
+  if(!lancar('manejo', d)) return; rbEd = null; rotCopia(); salvo(1, 'rot'); }
+function rotRebanho(){
+  const H = hojeISO(), UA = dados.rot.uaKg || 450, L = [], vazios = [], pode = !(user && user.ver);
+  modulos().forEach(m=>{ const c = calcModulo(m, dados.rot.datas, dados.rot.lotes), lote = (dados.rot.lotes[String(m.n)]||[]).map((l,i)=>Object.assign({i}, l)).filter(l=>+l.cabecas>0);
+    if(!lote.length){ vazios.push(m.n); return; } L.push({m, c, lote}); });
+  const tc = L.reduce((s,x)=>s+x.c.cab,0), tu = L.reduce((s,x)=>s+x.c.ua,0), nl = L.reduce((s,x)=>s+x.lote.length,0), pm = tc ? tu*UA/tc : 0;
+  const sm = 'class="muted" style="font-size:12px"';
+  let h = `<div class="kpis">${kpi('Lotes',fmt(nl),'c')}${kpi('Cabeças',fmt(tc),'c')}${kpi('UA',fmt(tu,1),'c')}${kpi('Peso médio',pm?fmt(Math.round(pm))+' kg':'—','c')}</div>`;
+  if(pode) h += rbEd==='novo' ? rbForm(null) : `<button class="btn prim full" style="margin:12px 0" onclick="rbEd='novo';TELAS.rot()">+ Novo lote</button>`;
+  L.forEach(x=>{ const pa = x.c.pastoAtual, d = pa && pa.entrada ? diasEntre(pa.entrada,H) : null, falta = pa ? diasEntre(H,pa.saida) : null;
+    const quando = !pa ? '<span class="tag t-cz">sem data de entrada</span>' : x.c.atrasado ? `<span class="tag t-vm">vencido há ${x.c.diasAtraso} d</span>` : `<span class="tag t-ok">sai ${falta<=0?'hoje':falta===1?'amanhã':'em '+falta+' d'}</span>`;
+    h += `<div class="card"><div class="linha" style="justify-content:space-between;align-items:flex-start"><div><h3 style="margin:0">Módulo ${x.m.n}${pa?' · '+esc(pa.nome):''}</h3>
+        <div ${sm}>${pa?`entrou ${br(pa.entrada)} · há ${d} dia${d===1?'':'s'} no pasto · sai ${br(pa.saida)}`:'sem data de entrada: toque em Corrigir e escolha o pasto'}</div></div>${quando}</div>
+      <table style="margin-top:8px"><tr><th>Categoria</th><th class="n">Cab.</th><th class="n">Peso</th><th class="n">UA</th>${pode?'<th></th>':''}</tr>
+      ${x.lote.map(l=>`<tr><td>${esc(String(l.categoria||'').trim()||'Lote')}</td><td class="n">${fmt(+l.cabecas)}</td><td class="n">${+l.peso?fmt(+l.peso)+' kg':'—'}</td><td class="n">${fmt((+l.cabecas||0)*(+l.peso||0)/UA,1)}</td>${pode?`<td class="n"><button class="btn peq" onclick="rbEd='${x.m.n}|${l.i}';TELAS.rot()">Corrigir</button></td>`:''}</tr>`).join('')}
+      ${x.lote.length>1?`<tr><td><b>Total</b></td><td class="n"><b>${fmt(x.c.cab)}</b></td><td class="n"><b>${fmt(Math.round(x.c.ua*UA/x.c.cab))} kg</b></td><td class="n"><b>${fmt(x.c.ua,1)}</b></td>${pode?'<td></td>':''}</tr>`:''}</table>
+      <div ${sm} style="margin-top:6px">Capacidade do módulo ${fmt(x.c.cap,1)} UA · ${x.m.area?fmt(x.c.ua/x.m.area,2)+' UA/ha':''}</div></div>`;
+    x.lote.forEach(l=>{ if(rbEd===x.m.n+'|'+l.i) h += rbForm(x.m.n, l.i); }); });
+  if(!L.length) h += '<p class="muted" style="text-align:center;margin-top:20px">Nenhum lote nos módulos.</p>';
+  if(vazios.length) h += `<p class="muted">Módulos sem gado: ${vazios.join(', ')}.</p>`;
+  setTimeout(rbAviso, 0);
+  return h;
 }
 function rotPainel(){
   const ms = modulos(); let cab=0, ua=0, area=0, cap=0; const st={acima:0,ok:0,aumentar:0,semlote:0}; const venc=[];
