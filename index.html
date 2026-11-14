@@ -112,7 +112,7 @@ table.lis input{padding:9px 6px;text-align:center;min-width:0}
 <script>
 /* ======= configuração ======= */
 const API = 'https://script.google.com/macros/s/AKfycbwY3RA38GPBgCJ4UZjjwriIR1XyGTsPuZ1mBAuUJ_TNuZuF4nQg7P_q68GT8okeYCZd/exec';
-const VERSAO = '2.23';
+const VERSAO = '2.24';
 
 /* ======= estado ======= */
 const LS = {
@@ -515,7 +515,7 @@ let lisEp = 'Águas';
 function lisGrupos(){
   const au = dados.rot.areaUtil||{};
   const g = modulos().map(m=>({n:m.n, t:'Módulo '+m.n, ps:m.pastos.map(p=>p[0])}));
-  const sm = (dados.rot.semModulo||[]).filter(p=>au[p]>0); if(sm.length) g.push({n:0, t:'Sem módulo', ps:sm});
+  const sm = (dados.rot.semModulo||[]).filter(p=>au[p]>0); if(sm.length) g.push({n:0, t:'TIP (fora do rotacionado)', ps:sm});
   return g;
 }
 function lisCab(g){
