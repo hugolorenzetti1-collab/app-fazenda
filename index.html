@@ -112,7 +112,7 @@ table.lis input{padding:9px 6px;text-align:center;min-width:0}
 <script>
 /* ======= configuração ======= */
 const API = 'https://script.google.com/macros/s/AKfycbwY3RA38GPBgCJ4UZjjwriIR1XyGTsPuZ1mBAuUJ_TNuZuF4nQg7P_q68GT8okeYCZd/exec';
-const VERSAO = '2.24';
+const VERSAO = '2.25';
 
 /* ======= estado ======= */
 const LS = {
@@ -639,10 +639,28 @@ function rotResumo(datas, lotes){
     <table>${c.pastos.map(p=>`<tr style="${p.estado==='atual'||p.estado==='atrasado'?'background:#eef6ef':''}"><td>${esc(p.nome)} ${p.estado==='atrasado'?'<span class="tag t-vm">atrasado</span>':p.estado==='atual'?'<span class="tag t-az">atual</span>':''}</td><td class="n">${p.entrada?br(p.entrada)+' → '+br(p.saida):'—'}</td></tr>`).join('')}</table>
     <div class="muted" style="padding:6px 0">${c.cab? c.cab+' cab · '+Math.round(c.ua)+' UA':'sem lote'}</div></div></div>`; }).join('');
 }
+// Termômetro: UA que a fazenda pede (capacidade somada dos módulos) × UA realizada (lotação atual).
+function termometroUA(ua, cap){
+  if(!(cap>0)) return '';
+  const pct = ua/cap*100, dif = cap-ua, cor = ua>cap+0.5 ? 'var(--vermelho)' : pct<85 ? '#c98a2b' : 'var(--ok)';
+  const st = ua>cap+0.5 ? ['t-vm','Acima do pedido'] : pct<85 ? ['t-am','Abaixo do pedido'] : ['t-ok','No ponto'];
+  const mx = Math.max(125, Math.ceil((pct+10)/25)*25), W=640, x0=46, x1=W-16, X = p => x0+(x1-x0)*Math.min(p,mx)/mx, y=34, h=26;
+  let g = `<rect x="${x0-6}" y="${y}" width="${x1-x0+6}" height="${h}" rx="13" fill="#ece9df"/>`;
+  g += `<rect x="${X(85)}" y="${y}" width="${X(100)-X(85)}" height="${h}" fill="#cfe8d4"/>`;                       // faixa do ponto certo (85 a 100%)
+  g += `<rect x="${x0-6}" y="${y+5}" width="${Math.max(8,X(pct)-x0+6)}" height="${h-10}" rx="8" fill="${cor}"/>`;
+  g += `<circle cx="${x0-18}" cy="${y+h/2}" r="22" fill="${cor}"/><circle cx="${x0-18}" cy="${y+h/2}" r="22" fill="none" stroke="#fff" stroke-opacity=".35" stroke-width="3"/>`;
+  for(let p=0; p<=mx; p+=25) g += `<line x1="${X(p)}" x2="${X(p)}" y1="${y+h}" y2="${y+h+6}" stroke="#999"/><text x="${X(p)}" y="${y+h+20}" text-anchor="middle" font-size="12" fill="#777">${p}%</text>`;
+  g += `<line x1="${X(100)}" x2="${X(100)}" y1="${y-8}" y2="${y+h+6}" stroke="#1F3D2B" stroke-width="2.5"/><text x="${X(100)}" y="${y-13}" text-anchor="middle" font-size="12" font-weight="700" fill="#1F3D2B">pedido</text>`;
+  g += `<text x="${Math.min(Math.max(X(pct), x0+34), x1-30)}" y="${y+h/2+5}" text-anchor="${X(pct)>x0+70?'end':'start'}" dx="${X(pct)>x0+70?-8:8}" font-size="14" font-weight="700" fill="${X(pct)>x0+70?'#fff':'#333'}">${fmt(pct)}%</text>`;
+  return `<div class="card"><div class="linha" style="justify-content:space-between"><h3 style="margin:0">UA PEDIDA × REALIZADA</h3><span class="tag ${st[0]}">${st[1]}</span></div>
+    <div class="kpis k3" style="margin-top:10px">${kpi('Fazenda pede',fmt(cap)+' UA')}${kpi('Realizado',fmt(ua)+' UA')}${kpi(dif>=0?'Falta':'Passou',`<i style="font-style:normal;color:${cor}">${fmt(Math.abs(dif))} UA</i>`)}</div>
+    <svg viewBox="0 0 ${W} 96" style="width:100%;height:auto;display:block;margin-top:6px">${g}</svg>
+    <div class="muted" style="font-size:12px">Pedido = capacidade somada dos módulos (pela última medição de forragem; onde não tem medição, o valor fixo do módulo). Realizado = UA dos lotes que estão nos módulos. A faixa verde clara é o ponto certo (85% a 100%).</div></div>`;
+}
 function rotPainel(){
   const ms = modulos(); let cab=0, ua=0, area=0, cap=0; const st={acima:0,ok:0,aumentar:0,semlote:0}; const venc=[];
   ms.forEach(m=>{ const c=calcModulo(m,dados.rot.datas,dados.rot.lotes); cab+=c.cab; ua+=c.ua; area+=m.area; cap+=c.cap; st[c.status]++; });
-  return `<div class="kpis">${kpi('Cabeças (cadastradas)',fmt(cab),'c')}${kpi('UA total',fmt(ua),'c')}${kpi('Lotados (diminuir)',`<i style="color:var(--vermelho)">${st.acima}</i>`,'c')}${kpi('Ajustados',`<i style="color:var(--ok)">${st.ok}</i>`,'c')}${kpi('Com folga',`<i style="color:#a86a00">${st.aumentar}</i>`,'c')}${kpi('Sem lote',st.semlote,'c')}</div>
+  return `${termometroUA(ua,cap)}<div class="kpis">${kpi('Cabeças (cadastradas)',fmt(cab),'c')}${kpi('UA total',fmt(ua),'c')}${kpi('Lotados (diminuir)',`<i style="color:var(--vermelho)">${st.acima}</i>`,'c')}${kpi('Ajustados',`<i style="color:var(--ok)">${st.ok}</i>`,'c')}${kpi('Com folga',`<i style="color:#a86a00">${st.aumentar}</i>`,'c')}${kpi('Sem lote',st.semlote,'c')}</div>
   <div class="card" style="margin-top:12px"><h3>REBANHO × PASTO</h3><table>
     <tr><td>Área total dos módulos</td><td class="n"><b>${fmt(area,1)} ha</b></td></tr><tr><td>Capacidade total</td><td class="n"><b>${fmt(cap)} UA</b></td></tr>
     <tr><td>Rebanho (UA total)</td><td class="n"><b>${fmt(ua)} UA</b></td></tr><tr><td>Taxa de lotação atual</td><td class="n"><b>${fmt(ua/area,2)} UA/ha</b></td></tr>
