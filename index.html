@@ -112,7 +112,7 @@ table.lis input{padding:9px 6px;text-align:center;min-width:0}
 <script>
 /* ======= configuração ======= */
 const API = 'https://script.google.com/macros/s/AKfycbwY3RA38GPBgCJ4UZjjwriIR1XyGTsPuZ1mBAuUJ_TNuZuF4nQg7P_q68GT8okeYCZd/exec';
-const VERSAO = '2.26';
+const VERSAO = '2.27';
 
 /* ======= estado ======= */
 const LS = {
@@ -452,10 +452,10 @@ TELAS.rot = (aba) => {
   if(aba) abaRot=aba;
   if(!ROT || !rotMudou.size) rotCopia();
   const nAv = rotAvisosDados().total;
-  app.innerHTML = abas('abR',[['manejo','Manejo'],['lista','Lista'],['forragem','Forragem'],['resumo','Resumo'],['painel','Painel'],['rebanho','Rebanho'],['avisos','Avisos'+(nAv?' ('+nAv+')':'')]],abaRot,'') + '<div id="rotC"></div>';
-  document.querySelectorAll('#abR button').forEach((b,i)=>b.onclick=()=>{ rbEd=null; ir('rot',['manejo','lista','forragem','resumo','painel','rebanho','avisos'][i]); });
+  app.innerHTML = abas('abR',[['manejo','Manejo'],['lista','Lista'],['forragem','Forragem'],['resumo','Resumo'],['painel','Painel'],['rebanho','Rebanho'],['avisos','Avisos'+(nAv?' ('+nAv+')':'')],['pastos','Pastos']],abaRot,'') + '<div id="rotC"></div>';
+  document.querySelectorAll('#abR button').forEach((b,i)=>b.onclick=()=>{ rbEd=null; pfEd=null; ir('rot',['manejo','lista','forragem','resumo','painel','rebanho','avisos','pastos'][i]); });
   { const on = document.querySelector('#abR .on'); if(on && on.scrollIntoView) on.scrollIntoView({inline:'center', block:'nearest'}); }
-  if(abaRot==='avisos') $('#rotC').innerHTML=rotAvisos(); else if(abaRot==='rebanho') $('#rotC').innerHTML=rotRebanho(); else if(abaRot==='manejo') rotManejo(); else if(abaRot==='lista') rotLista(); else if(abaRot==='forragem') rotForragem(); else if(abaRot==='resumo') $('#rotC').innerHTML=rotResumo(dados.rot.datas, dados.rot.lotes); else $('#rotC').innerHTML=rotPainel();
+  if(abaRot==='avisos') $('#rotC').innerHTML=rotAvisos(); else if(abaRot==='rebanho') $('#rotC').innerHTML=rotRebanho(); else if(abaRot==='pastos') $('#rotC').innerHTML=rotPastos(); else if(abaRot==='manejo') rotManejo(); else if(abaRot==='lista') rotLista(); else if(abaRot==='forragem') rotForragem(); else if(abaRot==='resumo') $('#rotC').innerHTML=rotResumo(dados.rot.datas, dados.rot.lotes); else $('#rotC').innerHTML=rotPainel();
 };
 function rotAlertas(datas, lotes){
   const al=[];
@@ -656,6 +656,54 @@ function termometroUA(ua, cap){
     <div class="kpis k3" style="margin-top:10px">${kpi('Fazenda pede',fmt(cap)+' UA')}${kpi('Realizado',fmt(ua)+' UA')}${kpi(dif>=0?'Falta':'Passou',`<i style="font-style:normal;color:${cor}">${fmt(Math.abs(dif))} UA</i>`)}</div>
     <svg viewBox="0 0 ${W} 96" style="width:100%;height:auto;display:block;margin-top:6px">${g}</svg>
     <div class="muted" style="font-size:12px">Pedido = capacidade somada dos módulos (pela última medição de forragem; onde não tem medição, o valor fixo do módulo). Realizado = UA dos lotes que estão nos módulos. A faixa verde clara é o ponto certo (85% a 100%).</div></div>`;
+}
+// Aba Pastos do Rotacionado: lista do cadastro e, para o Hugo, pasto novo / mudar área, AEP, módulo e posição no rodízio.
+let pfEd = null;   // null | 'novo' | nome do pasto
+const pfChave = s => String(s||'').replace(/\s+/g,' ').trim().toUpperCase();
+// refaz módulos, áreas e "sem módulo" a partir do cadastro (mesma conta do servidor: dias = 30 × área do pasto ÷ área do módulo)
+function rotDeCad(D){ const cad = D.rot.cad||[], util = {}, sem = [], mods = {}, velho = {}; (D.rot.modulos||[]).forEach(m=>velho[m.n]=m);
+  cad.forEach(c=>{ util[c.nome] = Math.round(c.area*c.aep)/100; if(c.m>0) (mods[c.m]=mods[c.m]||[]).push(c.nome); else sem.push(c.nome); });
+  D.rot.areaUtil = util; D.rot.semModulo = sem;
+  D.rot.modulos = Object.keys(mods).map(Number).sort((a,b)=>a-b).map(n=>{ const area = mods[n].reduce((s,p)=>s+(util[p]||0),0);
+    return {n, area: Math.round(area*10)/10, cap: velho[n]?velho[n].cap:0, pastos: mods[n].map(p=>[p, area>0 && util[p]>0 ? Math.round(30*util[p]/area*10000)/10000 : 0])}; }); }
+APLICA.pasto = (D,d) => { if(!D.rot.cad) return; const nome = pfChave(d.nome), cad = D.rot.cad, i = cad.findIndex(c=>pfChave(c.nome)===nome), mod = +d.modulo>0 ? +d.modulo : 0;
+  if(d.novo && i>=0) return; if(!d.novo && i<0) return; const nm = i>=0 ? cad[i].nome : nome; if(i>=0) cad.splice(i,1);
+  let pos = cad.length; if(mod){ const idxs = []; cad.forEach((c,k)=>{ if(c.m===mod) idxs.push(k); }); const p = +d.pos;
+    if(idxs.length) pos = p>=1 && p<=idxs.length ? idxs[p-1] : idxs[idxs.length-1]+1; else { pos = 0; cad.forEach((c,k)=>{ if(c.m>0 && c.m<mod) pos = k+1; }); } }
+  cad.splice(pos, 0, {m:mod, nome:nm, area:+d.area, aep:+d.aep}); rotDeCad(D); };
+function pfPosOps(){ const s = $('#pfPos'); if(!s) return; const mod = +val('pfMod')||0, eu = pfEd && pfEd!=='novo' ? pfChave(pfEd) : '', cad = dados.rot.cad||[];
+  const L = cad.filter(c=>c.m===mod && pfChave(c.nome)!==eu), meu = cad.find(c=>pfChave(c.nome)===eu), ja = meu && meu.m===mod ? cad.filter(c=>c.m===mod).findIndex(c=>pfChave(c.nome)===eu)+1 : 0;
+  $('#pfPosBox').style.display = mod && L.length ? '' : 'none';
+  s.innerHTML = L.map((c,k)=>`<option value="${k+1}" ${ja===k+1?'selected':''}>${k+1}º — antes do ${esc(c.nome)}</option>`).join('') + `<option value="0" ${!ja||ja>L.length?'selected':''}>${L.length+1}º — último${L.length?' (depois do '+esc(L[L.length-1].nome)+')':''}</option>`;
+  pfEfet(); }
+function pfEfet(){ const e = $('#pfEf'); if(!e) return; const a = +val('pfArea'), p = val('pfAep')==='' ? NaN : +val('pfAep'); e.textContent = a>0 && p>=0 ? 'Área efetiva: '+fmt(Math.round(a*p)/100,2)+' ha' : ''; }
+function pfForm(){ const novo = pfEd==='novo', cad = dados.rot.cad||[], c = novo ? {m:0,nome:'',area:'',aep:100} : cad.find(x=>pfChave(x.nome)===pfChave(pfEd)) || {m:0,nome:pfEd,area:'',aep:100};
+  const ms = [...new Set(cad.filter(x=>x.m>0).map(x=>x.m))].sort((a,b)=>a-b), prox = (ms.length?ms[ms.length-1]:0)+1;
+  return `<div class="card" style="border:2px solid var(--verde)"><h3 style="margin-top:0">${novo?'Novo pasto':'Editar '+esc(c.nome)}</h3>
+    ${novo?`<label>Nome do pasto</label><input id="pfNome" placeholder="Ex.: PASTO 44" style="text-transform:uppercase">`:''}
+    <div class="linha" style="gap:10px"><div style="flex:1"><label>Área total (ha)</label><input id="pfArea" type="number" inputmode="decimal" step="0.01" value="${c.area}" oninput="pfEfet()"></div><div style="flex:1"><label>AEP (% de capim)</label><input id="pfAep" type="number" inputmode="decimal" min="0" max="100" value="${c.aep}" oninput="pfEfet()"></div></div>
+    <div class="status" id="pfEf"></div>
+    <label>Módulo</label><select id="pfMod" onchange="pfPosOps()"><option value="0" ${!c.m?'selected':''}>Sem módulo (fora do rotacionado)</option>${ms.map(n=>`<option value="${n}" ${c.m===n?'selected':''}>Módulo ${n}</option>`).join('')}<option value="${prox}">Módulo ${prox} (novo)</option></select>
+    <div id="pfPosBox"><label>Posição no rodízio</label><select id="pfPos"></select></div>
+    <div class="linha" style="margin-top:12px"><button class="btn prim" onclick="pfSalva()">Salvar</button><button class="btn" onclick="pfEd=null;TELAS.rot()">Cancelar</button></div></div>`; }
+function pfSalva(){ const novo = pfEd==='novo', nome = novo ? pfChave(val('pfNome')) : pfEd, area = +val('pfArea'), aepS = val('pfAep'), aep = +aepS, mod = +val('pfMod')||0;
+  if(!nome) return toast('Informe o nome do pasto'); if(novo && (dados.rot.cad||[]).some(c=>pfChave(c.nome)===nome)) return toast('Já existe o pasto '+nome);
+  if(!(area>0)) return toast('Informe a área total'); if(aepS==='' || !(aep>=0 && aep<=100)) return toast('AEP deve ficar entre 0 e 100');
+  if(!lancar('pasto', {nome, area, aep, modulo:mod, pos: mod ? +val('pfPos')||0 : 0, novo})) return;
+  pfEd = null; rotCopia(); salvo(1, 'rot'); }
+function rotPastos(){
+  const cad = dados.rot.cad; if(!cad || !cad.length) return '<p class="muted" style="text-align:center;margin-top:20px">Toque em Atualizar para carregar o cadastro de pastos.</p>';
+  const adm = !!(user && user.admin), ms = [...new Set(cad.filter(c=>c.m>0).map(c=>c.m))].sort((a,b)=>a-b), ef = c => Math.round(c.area*c.aep)/100;
+  const tab = (L, num) => `<table><tr><th>Pasto</th><th class="n">Total</th><th class="n">AEP</th><th class="n">Efetiva</th>${adm?'<th></th>':''}</tr>${L.map((c,k)=>`<tr><td>${num?`<span class="muted">${k+1}.</span> `:''}<b>${esc(c.nome)}</b></td><td class="n">${fmt(c.area,2)}</td><td class="n">${fmt(c.aep)}%</td><td class="n">${fmt(ef(c),2)}</td>${adm?`<td class="n"><button class="btn peq" onclick="pfEd='${esc(c.nome).replace(/'/g,"\\'")}';TELAS.rot()">Editar</button></td>`:''}</tr>`).join('')}
+    <tr><td><b>Total</b></td><td class="n"><b>${fmt(L.reduce((s,c)=>s+c.area,0),2)}</b></td><td></td><td class="n"><b>${fmt(L.reduce((s,c)=>s+ef(c),0),2)}</b></td>${adm?'<td></td>':''}</tr></table>`;
+  const sem = cad.filter(c=>!(c.m>0)), editando = pfEd && pfEd!=='novo';
+  let h = `<div class="kpis k3">${kpi('Pastos',fmt(cad.length))}${kpi('Em módulos',fmt(cad.length-sem.length))}${kpi('Área efetiva',fmt(cad.reduce((s,c)=>s+ef(c),0),0)+' ha')}</div>`;
+  if(adm) h += pfEd ? pfForm() : `<button class="btn prim full" style="margin:12px 0" onclick="pfEd='novo';TELAS.rot()">+ Novo pasto</button>`;
+  if(!editando){ ms.forEach(n=>{ h += `<div class="card"><h3 style="margin-top:0">Módulo ${n}</h3>${tab(cad.filter(c=>c.m===n), true)}</div>`; });
+    if(sem.length) h += `<div class="card"><h3 style="margin-top:0">Sem módulo (fora do rotacionado)</h3>${tab(sem, false)}</div>`;
+    h += `<p class="muted">Áreas em hectares. A ordem dos pastos dentro do módulo é a ordem do rodízio. ${adm?'':'Só o Hugo altera o cadastro.'}</p>`; }
+  setTimeout(pfPosOps, 0);
+  return h;
 }
 // Rebanho do rotacionado, lote por lote. Aqui também se corrige o lote: categoria, cabeças, peso e o pasto onde está
 // (escolhido na lista); salvar grava o lote e a entrada no pasto, igual ao Manejo (tipo 'manejo').
@@ -1066,7 +1114,7 @@ function salvaMaq(nome){
 }
 
 /* =================== FILA + CORRIGIR / APAGAR =================== */
-const NOMES = {gado:'Controle de gado',transf:'Transferência',morte:'Morte',trato:'Trato',chuva:'Chuva',mudar:'Mudar de pasto',lote:'Lote',manejo:'Rotacionado',contagem:'Contagem',bebedouro:'Bebedouro',cocho:'Cocho/sal',maquina:'Máquina',maq_nova:'Nova máquina',regras:'Regras',medicao:'Medição de forragem',tarefa:'Tarefa'};
+const NOMES = {gado:'Controle de gado',transf:'Transferência',morte:'Morte',trato:'Trato',chuva:'Chuva',mudar:'Mudar de pasto',lote:'Lote',manejo:'Rotacionado',contagem:'Contagem',bebedouro:'Bebedouro',cocho:'Cocho/sal',maquina:'Máquina',maq_nova:'Nova máquina',regras:'Regras',medicao:'Medição de forragem',tarefa:'Tarefa',pasto:'Cadastro de pasto'};
 function resumo(x){ const d=x.d||{}; const mf=()=>[(+d.machos?d.machos+' M':''),(+d.femeas?d.femeas+' F':''),(d.qtd&&!d.machos&&!d.femeas?d.qtd+(d.sexo==='F'?' F':' M'):'')].filter(Boolean).join(' '); switch(x.tipo){
   case 'trato': return d.pasto+' · '+fmt(d.kg)+' kg';
   case 'gado': return (d.mov==='saida'?'Saída ':'Entrada ')+mf()+' · '+d.fazenda+(d.obs?' · '+d.obs:'');
@@ -1079,6 +1127,7 @@ function resumo(x){ const d=x.d||{}; const mf=()=>[(+d.machos?d.machos+' M':''),
   case 'cocho': return 'Módulo '+d.modulo+' · '+d.sacos+' sacos';
   case 'maquina': return d.maquina+' · '+d.tipo;
   case 'medicao': return d.pasto+' · '+d.altura+' cm';
+  case 'pasto': return (d.novo?'Novo pasto ':'Pasto ')+d.nome+' → '+(+d.modulo>0?'módulo '+d.modulo:'sem módulo');
   case 'tarefa': return (d.acao==='nova' ? 'Nova: '+d.titulo : d.acao==='excluir' ? 'Excluiu: '+(d.titulo||'') : ((d.titulo||'')+' → '+d.status))+(d.foto?' 📷':'');
   case 'maq_nova': return d.nome; } return ''; }
 /* =================== TAREFAS (quadro A fazer / Fazendo / Feito) =================== */
