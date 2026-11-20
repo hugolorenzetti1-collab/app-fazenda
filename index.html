@@ -112,7 +112,7 @@ table.lis input{padding:9px 6px;text-align:center;min-width:0}
 <script>
 /* ======= configuração ======= */
 const API = 'https://script.google.com/macros/s/AKfycbwY3RA38GPBgCJ4UZjjwriIR1XyGTsPuZ1mBAuUJ_TNuZuF4nQg7P_q68GT8okeYCZd/exec';
-const VERSAO = '2.28';
+const VERSAO = '2.29';
 
 /* ======= estado ======= */
 const LS = {
@@ -315,6 +315,12 @@ async function entrar(){
   }catch(e){ user=null; toast(navigator.onLine ? e.message : 'Sem internet para o primeiro acesso', 4000); }
 }
 
+// Caixas de avisos da tela inicial: tocar abre a lista inteira ali mesmo (v2.29)
+let avAberto = {a:false, t:false};
+function avAlterna(k){ avAberto[k] = !avAberto[k]; TELAS.home(); }
+function caixaAvisos(l, k){ if(!l || !l.length) return '';
+  const n = k==='t' ? 5 : 4, mais = l.length>n, ab = avAberto[k] && mais, dest = k==='t' ? 'tarefas' : 'painel';
+  return `<div class="avisos" onclick="${mais?`avAlterna('${k}')`:`ir('${dest}')`}"><b>${k==='t'?'📋 '+l.length+' tarefa(s) pedindo atenção':'⚠ '+l.length+' aviso(s)'}</b>${(ab?l:l.slice(0,n)).map(a=>`<div>• ${esc(a.t)}</div>`).join('')}${!mais?'':ab?`<div class="linha" style="margin-top:8px;gap:8px"><span class="muted">▲ toque para recolher</span>${k==='t'?`<button class="btn peq" onclick="event.stopPropagation();ir('tarefas')">Abrir Tarefas</button>`:''}</div>`:`<div><b>… e mais ${l.length-n} — toque para ver todos</b></div>`}</div>`; }
 TELAS.home = () => {
   if(user.ver) return homeVer();
   const em = LS.get('dadosEm', null);
@@ -331,8 +337,8 @@ TELAS.home = () => {
       <button class="btn" onclick="sair()">Trocar usuário</button>
     </div>
   </div>
-  ${av.length?`<div class="avisos" onclick="ir('painel')"><b>⚠ ${av.length} aviso(s)</b>${av.slice(0,4).map(a=>`<div>• ${esc(a.t)}</div>`).join('')}${av.length>4?`<div>… e mais ${av.length-4}</div>`:''}</div>`:''}
-  ${(ta=>ta.length?`<div class="avisos" onclick="ir('tarefas')"><b>📋 ${ta.length} tarefa(s) pedindo atenção</b>${ta.slice(0,5).map(a=>`<div>• ${esc(a.t)}</div>`).join('')}${ta.length>5?`<div>… e mais ${ta.length-5}</div>`:''}</div>`:'')(tarAvisos())}
+  ${caixaAvisos(av,'a')}
+  ${caixaAvisos(tarAvisos(),'t')}
   <label>Fazenda</label><select id="selFaz" onchange="fazenda=this.value;LS.set('fazenda',fazenda)">${opts(FAZENDAS, fazenda)}</select>
   <div style="height:12px"></div>
   <div class="grade">
@@ -355,7 +361,7 @@ function homeVer(){
   <div class="card"><div class="linha" style="justify-content:space-between"><div><b>${esc(user.nome)}</b> <span class="muted">· só consulta</span></div>
     <div class="muted">${em? 'atualizado '+new Date(em).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}) : 'sem dados'}</div></div>
     <div class="linha" style="margin-top:10px"><button class="btn prim" onclick="sincronizar()" ${enviando?'disabled':''}>${enviando?'Atualizando…':'⟳ Atualizar'}</button><button class="btn" onclick="sair()">Trocar usuário</button></div></div>
-  ${av.length?`<div class="avisos" onclick="ir('painel')"><b>⚠ ${av.length} aviso(s)</b>${av.slice(0,4).map(a=>`<div>• ${esc(a.t)}</div>`).join('')}${av.length>4?`<div>… e mais ${av.length-4}</div>`:''}</div>`:''}
+  ${caixaAvisos(av,'a')}
   <div class="grade">
     <div class="tile" onclick="ir('painel')">${IC.painel}<span>Painel</span></div>
     <div class="tile" onclick="ir('mapa')">${IC.mapa}<span>Mapa</span></div>
