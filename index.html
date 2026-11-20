@@ -112,7 +112,7 @@ table.lis input{padding:9px 6px;text-align:center;min-width:0}
 <script>
 /* ======= configuração ======= */
 const API = 'https://script.google.com/macros/s/AKfycbwY3RA38GPBgCJ4UZjjwriIR1XyGTsPuZ1mBAuUJ_TNuZuF4nQg7P_q68GT8okeYCZd/exec';
-const VERSAO = '2.27';
+const VERSAO = '2.28';
 
 /* ======= estado ======= */
 const LS = {
@@ -766,10 +766,98 @@ function rotRebanho(){
   setTimeout(rbAviso, 0);
   return h;
 }
+// Sugestão de manejo (19/11/2026): tira o excesso dos módulos lotados e manda para onde cabe, só pela conta de UA. Gera PDF no celular, sem internet.
+function sugFora(){ return (LS.get('sugFora', [])||[]).map(Number); }
+function sugAlterna(n){ const f = sugFora(), i = f.indexOf(n); if(i>=0) f.splice(i,1); else f.push(n); LS.set('sugFora', f); TELAS.rot(); }
+function sugestaoManejo(){
+  const UA = dados.rot.uaKg || 450, ms = modulos();
+  const M = ms.map(m=>{ const c = calcModulo(m, dados.rot.datas, dados.rot.lotes);
+    const lotes = (dados.rot.lotes[String(m.n)]||[]).map(l=>({cat:String(l.categoria||'Lote'), cab:+l.cabecas||0, peso:+l.peso||0})).filter(l=>l.cab>0);
+    return {n:m.n, cap:c.cap||0, ua:c.ua, cab:c.cab, ua0:c.ua, pasto:c.pastoAtual?c.pastoAtual.nome:'', lotes, cats:new Set(lotes.map(l=>l.cat.toLowerCase()))}; });
+  const movs = [], uaDe = (n,p)=>n*p/UA, fora = sugFora();
+  M.forEach(m=>{ m.fora = fora.includes(m.n); m.fixo = m.fora && m.cab>0 && m.ua>m.cap+0.5; });
+  M.filter(m=>m.cab>0 && m.ua>m.cap+0.5 && !m.fora).sort((a,b)=>(b.ua-b.cap)-(a.ua-a.cap)).forEach(o=>{
+    const exc = o.ua-o.cap; let l, n;
+    const inteiros = o.lotes.length>1 ? o.lotes.filter(x=>uaDe(x.cab,x.peso)>=exc-0.5).sort((a,b)=>a.cab-b.cab) : [];
+    if(inteiros.length){ l = inteiros[0]; n = l.cab; }                       // módulo com mais de uma categoria: separa uma inteira
+    else { l = o.lotes.slice().sort((a,b)=>uaDe(b.cab,b.peso)-uaDe(a.cab,a.peso))[0]; if(!l||!l.peso) return; n = Math.min(l.cab, Math.ceil(exc/(l.peso/UA))); }
+    let falta = n; const k = l.cat.toLowerCase();
+    const manda = (d, q)=>{ const u = uaDe(q,l.peso); movs.push({de:o.n, para:d.n, cab:q, cat:l.cat, peso:l.peso, ua:u, mistura: d.cats.size>0 && !d.cats.has(k)}); d.ua+=u; d.cats.add(k); o.ua-=u; falta-=q; };
+    const livres = ()=>M.filter(d=>d.n!==o.n && !d.fora && d.cap>0 && d.cap-d.ua>=1).sort((a,b)=>(b.cap-b.ua)-(a.cap-a.ua));
+    const cabe = d=>d.cap-d.ua >= uaDe(falta,l.peso)-0.5;
+    const alvo = livres().filter(d=>d.cats.has(k)&&cabe(d))[0] || livres().filter(d=>!d.cats.size&&cabe(d))[0] || livres().filter(cabe)[0];
+    if(alvo) manda(alvo, falta);
+    else livres().forEach(d=>{ if(falta<=0) return; const q = Math.min(falta, Math.floor((d.cap-d.ua)/(l.peso/UA))); if(q>=5) manda(d,q); });
+    if(falta>0) movs.push({de:o.n, para:null, cab:falta, cat:l.cat, peso:l.peso, ua:uaDe(falta,l.peso)});
+  });
+  return {M, movs, ua:M.reduce((s,m)=>s+m.ua0,0), cap:M.reduce((s,m)=>s+m.cap,0), cab:M.reduce((s,m)=>s+m.cab,0)};
+}
+// PDF mínimo (A4, Helvetica) escrito na mão, para não depender de biblioteca nem de internet.
+function plural(cat, n){ const c = String(cat).toLowerCase(); return n>1 && !/s$/.test(c) ? c+'s' : c; }
+function PdfSimples(){
+  const W=595, H=842, pags=[[]]; let p=pags[0];
+  const LG=[278,278,355,556,556,889,667,191,333,333,389,584,278,333,278,278,556,556,556,556,556,556,556,556,556,556,278,278,584,584,584,556,1015,667,667,722,722,667,611,778,722,278,500,667,556,833,722,778,667,778,722,667,611,722,667,944,667,667,611,278,278,278,469,556,333,556,556,500,556,556,278,556,556,222,222,500,222,833,556,556,556,556,333,500,278,556,500,722,500,500,500,334,260,334,584];
+  const cod = ch=>{ const c=ch.charCodeAt(0); return c===0x2014||c===0x2013?0x97 : c===0x2026?0x85 : c<256?c:63; };
+  const larg = (s,t,b)=>{ let w=0; for(const ch of String(s)){ const a=ch.normalize('NFD').charCodeAt(0); w+= a>=32&&a<=126 ? LG[a-32] : 556; } return w*t/1000*(b?1.07:1); };
+  const hex = s=>{ let o=''; for(const ch of String(s)) o+=cod(ch).toString(16).padStart(2,'0'); return o; };
+  const rgb = c=>c.map(v=>(v/255).toFixed(3)).join(' ');
+  return { W, H, larg,
+    nova(){ p=[]; pags.push(p); },
+    txt(x,y,s,t,o){ o=o||{}; const w=larg(s,t,o.b); if(o.al==='r') x-=w; else if(o.al==='c') x-=w/2; p.push(`BT /${o.b?'F2':'F1'} ${t} Tf ${rgb(o.cor||[34,34,34])} rg ${x.toFixed(1)} ${(H-y).toFixed(1)} Td <${hex(s)}> Tj ET`); },
+    ret(x,y,w,h,cor){ p.push(`${rgb(cor)} rg ${x.toFixed(1)} ${(H-y-h).toFixed(1)} ${w.toFixed(1)} ${h.toFixed(1)} re f`); },
+    lin(x1,y,x2,cor){ p.push(`${rgb(cor||[217,213,202])} RG 0.5 w ${x1.toFixed(1)} ${(H-y).toFixed(1)} m ${x2.toFixed(1)} ${(H-y).toFixed(1)} l S`); },
+    bytes(){ const obj=[], n=pags.length; obj[1]='<< /Type /Catalog /Pages 2 0 R >>';
+      obj[2]=`<< /Type /Pages /Count ${n} /Kids [${pags.map((_,i)=>(5+i*2)+' 0 R').join(' ')}] >>`;
+      obj[3]='<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>'; obj[4]='<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>';
+      pags.forEach((ops,i)=>{ const s=ops.join('\n'); obj[5+i*2]=`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${W} ${H}] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents ${6+i*2} 0 R >>`; obj[6+i*2]=`<< /Length ${s.length} >>\nstream\n${s}\nendstream`; });
+      let out='%PDF-1.4\n'; const off=[]; for(let i=1;i<obj.length;i++){ off[i]=out.length; out+=`${i} 0 obj\n${obj[i]}\nendobj\n`; }
+      const xr=out.length; out+=`xref\n0 ${obj.length}\n0000000000 65535 f \n`; for(let i=1;i<obj.length;i++) out+=String(off[i]).padStart(10,'0')+' 00000 n \n';
+      out+=`trailer\n<< /Size ${obj.length} /Root 1 0 R >>\nstartxref\n${xr}\n%%EOF`;
+      const u=new Uint8Array(out.length); for(let i=0;i<out.length;i++) u[i]=out.charCodeAt(i)&255; return u; } };
+}
+function pdfManejoBytes(){
+  const S = sugestaoManejo(), P = PdfSimples(), X0=40, X1=555, VERDE=[31,61,43], LAR=[207,107,51], VM=[179,38,30], OK=[46,125,50], CZ=[110,110,110];
+  let y=52; const cabe = h=>{ if(y+h>800){ P.nova(); y=50; } };
+  const quebra = (s,t,w)=>{ const out=[]; let l=''; String(s).split(' ').forEach(p=>{ const k=l?l+' '+p:p; if(P.larg(k,t)>w && l){ out.push(l); l=p; } else l=k; }); if(l) out.push(l); return out; };
+  const par = (s,t,cor)=>{ quebra(s,t,X1-X0).forEach(l=>{ cabe(t+4); P.txt(X0,y,l,t,{cor}); y+=t+4; }); };
+  const tabela = (cols, linhas, corCab)=>{ const cab=()=>{ cabe(40); P.ret(X0,y-12,X1-X0,17,corCab); cols.forEach(c=>P.txt(c.al==='r'?c.x+c.w-4:c.x+4,y,c.t,9,{b:1,cor:[255,255,255],al:c.al})); y+=19; };
+    cab(); linhas.forEach(r=>{ if(y+16>800){ P.nova(); y=50; cab(); } r.forEach((v,i)=>{ const c=cols[i], o=typeof v==='object'?v:{s:v}; P.txt(c.al==='r'?c.x+c.w-4:c.x+4,y,o.s,9,{al:c.al,cor:o.cor,b:o.b}); }); P.lin(X0,y+5,X1); y+=16; }); y+=8; };
+  P.txt(X0,y,'Sugestão de manejo — Rotacionado',18,{b:1,cor:VERDE}); y+=17;
+  P.txt(X0,y,'Fazenda Lorenzetti · '+br(hojeISO())+(user?' · gerado por '+user.nome:''),10.5,{cor:LAR}); y+=20;
+  const acima = S.M.filter(m=>m.cab>0&&m.ua0>m.cap+0.5).length, vazios = S.M.filter(m=>!m.cab&&m.cap>0).length;
+  par(`Rebanho no rotacionado: ${fmt(S.cab)} cabeças · ${fmt(S.ua)} UA. Capacidade dos módulos: ${fmt(S.cap)} UA (pela última medição de forragem de cada pasto). ${acima} módulo(s) acima da capacidade e ${vazios} vazio(s) com capacidade.`,10); y+=8;
+  P.txt(X0,y,'Situação por módulo',12.5,{b:1,cor:VERDE}); y+=18;
+  tabela([{t:'Módulo',x:X0,w:45},{t:'Pasto atual',x:85,w:95},{t:'Lote',x:180,w:160},{t:'UA',x:340,w:45,al:'r'},{t:'Capac.',x:385,w:50,al:'r'},{t:'Situação',x:440,w:115}],
+    S.M.slice().sort((a,b)=>(b.ua0-b.cap)-(a.ua0-a.cap)).map(m=>{ const d=m.ua0-m.cap;
+      const sit = m.fora && !m.fixo && m.cap-m.ua0>=1 ? {s:m.cab?'fora da sugestão':'descansando',cor:CZ} : !m.cab ? {s:m.cap>0?'livre':'sem capacidade',cor:CZ} : d>0.5 ? {s:'+'+fmt(d)+' UA'+(m.fixo?' (não mexer)':' (acima)'),cor:VM,b:d>=m.cap*0.2} : d>-m.cap*0.15 ? {s:'ajustado'} : {s:'folga de '+fmt(-d)+' UA',cor:OK};
+      return [String(m.n), m.cab?m.pasto||'—':'—', m.cab?m.lotes.map(l=>fmt(l.cab)+' '+plural(l.cat,l.cab)).join(' + ').slice(0,34):'vazio', fmt(m.ua0), fmt(m.cap), sit]; }), VERDE);
+  cabe(60); P.txt(X0,y,'Movimentos sugeridos',12.5,{b:1,cor:VERDE}); y+=18;
+  if(!S.movs.length) par('Nenhum módulo acima da capacidade. Não há movimento a sugerir.',10);
+  else tabela([{t:'Tirar de',x:X0,w:65},{t:'Quanto',x:105,w:150},{t:'Levar para',x:255,w:80},{t:'Como fica (UA / capacidade)',x:335,w:220}],
+    S.movs.map(v=>{ const o=S.M.find(m=>m.n===v.de), d=v.para!=null?S.M.find(m=>m.n===v.para):null;
+      return [{s:'Módulo '+v.de,b:1}, `${fmt(v.cab)} ${plural(v.cat,v.cab)} (${fmt(v.peso)} kg)`, d?{s:'Módulo '+d.n+(v.mistura?' *':'')}:{s:'sem lugar',cor:VM}, `${o.n}: ${fmt(o.ua)}/${fmt(o.cap)}`+(d?` · ${d.n}: ${fmt(d.ua)}/${fmt(d.cap)}`:'')]; }), LAR);
+  y+=2;
+  const fx = S.M.filter(m=>m.fixo).map(m=>m.n); if(fx.length) par('Módulo(s) '+fx.join(', ')+': acima da capacidade, mas marcados para não mexer agora; ficaram fora da sugestão.',8.5,CZ);
+  const ds = S.M.filter(m=>m.fora&&!m.fixo&&m.cap-m.ua0>=1).map(m=>m.n); if(ds.length) par('Módulo(s) '+ds.join(', ')+': deixados de fora (descanso); a sugestão não manda gado para eles.',8.5,CZ);
+  if(S.movs.some(v=>v.mistura)) par('* mistura com outra categoria que já está no módulo de destino.',8.5,CZ);
+  if(S.movs.some(v=>v.para==null)) par('"Sem lugar": não há módulo com folga para esse gado; a fazenda está acima da capacidade medida.',8.5,CZ);
+  par('"Como fica" mostra a lotação depois de todos os movimentos da lista.',8.5,CZ);
+  par('Sugestão feita só pela conta de UA (1 UA = '+fmt(dados.rot.uaKg||450)+' kg): não considera distância entre os módulos nem a altura do capim. Ajuste o destino pelo que for mais perto.',8.5,CZ);
+  return {bytes:P.bytes(), S};
+}
+async function pdfManejo(){
+  let r; try{ r = pdfManejoBytes(); }catch(e){ toast('Não gerou o PDF: '+e.message, 4000); return; }
+  const nome = 'manejo-'+br(hojeISO()).slice(0,5).replace('/','-')+'.pdf', f = new File([r.bytes], nome, {type:'application/pdf'});
+  try{ if(navigator.canShare && navigator.canShare({files:[f]})){ await navigator.share({files:[f], title:'Sugestão de manejo'}); return; } }catch(e){ if(e && e.name==='AbortError') return; }
+  const a = document.createElement('a'); a.href = URL.createObjectURL(f); a.download = nome; document.body.appendChild(a); a.click(); setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); }, 4000);
+  toast('PDF salvo: '+nome);
+}
+function sugChips(ms){ const f = sugFora(), ac = ms.filter(m=>{ const c = calcModulo(m,dados.rot.datas,dados.rot.lotes); return c.status==='acima' || (c.cap>0 && c.cap-c.ua>=1); }); if(!ac.length) return '';
+  return `<div class="muted" style="margin:-4px 2px 12px">Módulos que entram na sugestão (toque para deixar de fora: lotado que não vai mexer ou pasto em descanso):<div class="linha" style="flex-wrap:wrap;gap:6px;margin-top:6px">${ac.map(m=>`<button class="btn peq" style="${f.includes(m.n)?'opacity:.45;text-decoration:line-through':''}" onclick="sugAlterna(${m.n})">${m.n}</button>`).join('')}</div></div>`; }
 function rotPainel(){
   const ms = modulos(); let cab=0, ua=0, area=0, cap=0; const st={acima:0,ok:0,aumentar:0,semlote:0}; const venc=[];
   ms.forEach(m=>{ const c=calcModulo(m,dados.rot.datas,dados.rot.lotes); cab+=c.cab; ua+=c.ua; area+=m.area; cap+=c.cap; st[c.status]++; });
-  return `${termometroUA(ua,cap)}<div class="kpis">${kpi('Cabeças (cadastradas)',fmt(cab),'c')}${kpi('UA total',fmt(ua),'c')}${kpi('Lotados (diminuir)',`<i style="color:var(--vermelho)">${st.acima}</i>`,'c')}${kpi('Ajustados',`<i style="color:var(--ok)">${st.ok}</i>`,'c')}${kpi('Com folga',`<i style="color:#a86a00">${st.aumentar}</i>`,'c')}${kpi('Sem lote',st.semlote,'c')}</div>
+  return `${termometroUA(ua,cap)}<button class="btn prim" style="width:100%;margin:10px 0 12px" onclick="pdfManejo()">📄 Sugestão de manejo (PDF)</button>${sugChips(ms)}<div class="kpis">${kpi('Cabeças (cadastradas)',fmt(cab),'c')}${kpi('UA total',fmt(ua),'c')}${kpi('Lotados (diminuir)',`<i style="color:var(--vermelho)">${st.acima}</i>`,'c')}${kpi('Ajustados',`<i style="color:var(--ok)">${st.ok}</i>`,'c')}${kpi('Com folga',`<i style="color:#a86a00">${st.aumentar}</i>`,'c')}${kpi('Sem lote',st.semlote,'c')}</div>
   <div class="card" style="margin-top:12px"><h3>REBANHO × PASTO</h3><table>
     <tr><td>Área total dos módulos</td><td class="n"><b>${fmt(area,1)} ha</b></td></tr><tr><td>Capacidade total</td><td class="n"><b>${fmt(cap)} UA</b></td></tr>
     <tr><td>Rebanho (UA total)</td><td class="n"><b>${fmt(ua)} UA</b></td></tr><tr><td>Taxa de lotação atual</td><td class="n"><b>${fmt(ua/area,2)} UA/ha</b></td></tr>
