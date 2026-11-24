@@ -112,7 +112,7 @@ table.lis input{padding:9px 6px;text-align:center;min-width:0}
 <script>
 /* ======= configuração ======= */
 const API = 'https://script.google.com/macros/s/AKfycbwY3RA38GPBgCJ4UZjjwriIR1XyGTsPuZ1mBAuUJ_TNuZuF4nQg7P_q68GT8okeYCZd/exec';
-const VERSAO = '2.30';
+const VERSAO = '2.31';
 
 /* ======= estado ======= */
 const LS = {
@@ -144,6 +144,8 @@ function toast(msg, ms){ const t=$('#toast'); t.textContent=msg; t.style.display
 
 /* ======= ícones ======= */
 const IC = {
+  def:'<svg viewBox="0 0 24 24"><path d="M9 3h6"/><path d="M10 3v6l-5 9a2 2 0 0 0 2 3h10a2 2 0 0 0 2-3l-5-9V3"/><path d="M7.5 15h9"/></svg>',
+  adu:'<svg viewBox="0 0 24 24"><path d="M12 21v-9"/><path d="M12 12c0-4-3-6-7-6 0 4 3 6 7 6z"/><path d="M12 15c0-3 2.5-5 6-5 0 3-2.5 5-6 5z"/></svg>',
   tarefas:'<svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="17" rx="2"/><path d="M9 3h6v3H9z"/><path d="M8 12l2 2 4-4"/><path d="M8 17h8"/></svg>',
   trato:'<svg viewBox="0 0 24 24"><path d="M3 10h18l-2 9H5z"/><path d="M7 10V6h10v4"/></svg>',
   rot:'<svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.3-5.6"/><path d="M20 4v5h-5"/></svg>',
@@ -346,6 +348,7 @@ TELAS.home = () => {
     ${t('gado','Controle de gado','gado')}${t('chuva','Chuva','chuva')}
     ${t('morte','Morte','morte')}${t('contagem','Contagem','contagem')}
     ${t('bebedouro','Bebedouro','bebedouro')}${t('cocho','Cocho / sal','cocho')}
+    ${t('defensivo','Defensivos','def')}${t('adubo','Adubos','adu')}
     ${t('maquina','Máquinas','maquinas')}${t('mapa','Mapa','mapa')}
     ${t('tarefas','Tarefas'+(tarAbertas()?' ('+tarAbertas()+')':''),'tarefas')}${t('log','Log','log')}
   </div>
@@ -1160,6 +1163,99 @@ function salvaBeb(){
   salvo(cs.length);
 }
 
+/* =================== DEFENSIVOS e ADUBOS (v2.31): estoque + aplicação por pasto =================== */
+const INS = {def:{nome:'Defensivos',tela:'defensivo',uns:['L/ha','mL/ha','kg/ha','g/ha']}, adu:{nome:'Adubos',tela:'adubo',uns:['kg/ha','t/ha','L/ha']}};
+const INS_FAT = {'L/ha':1,'mL/ha':0.001,'kg/ha':1,'g/ha':0.001,'t/ha':1000};
+const insUnEst = un => /L\/ha$/.test(un||'') ? 'L' : 'kg';
+const n2 = n => fmt(n, Math.abs(n)>=100 || Number.isInteger(+n) ? 0 : 2);
+let abaIns = {def:'novo', adu:'novo'}, insFiltro = {def:'', adu:''};
+const insD = () => { if(dados && !dados.insumos) dados.insumos = {prod:[],def:[],adu:[],ent:[]}; return dados ? dados.insumos : {prod:[],def:[],adu:[],ent:[]}; };
+const insProds = (c, todos) => insD().prod.filter(p=>p.classe===c && (todos || p.ativo!==false));
+const insPastos = () => { const cad = dados.rot.cad||[]; return cad.length ? cad.map(p=>({nome:p.nome, m:+p.m||0, area:+p.area||0})) : modulos().flatMap(m=>m.pastos.map(p=>({nome:p[0], m:m.n, area:+((dados.rot.areaUtil||{})[p[0]])||0}))); };
+const insAsp = s => esc(s).replace(/'/g,"\\'");
+APLICA.insumo = (D,d) => { const I = D.insumos || (D.insumos = {prod:[],def:[],adu:[],ent:[]}); (d.prods||[]).forEach(p=>{ const tot = Math.round(p.dose*(+d.area||0)*(INS_FAT[p.un]||1)*1000)/1000;
+  I[d.classe].unshift({data:d.data,pasto:d.pasto,modulo:String(d.modulo||''),area:+d.area||0,produto:p.produto,dose:+p.dose,un:p.un,total:tot,unT:insUnEst(p.un),alvo:d.alvo||'',obs:d.obs||'',user:user.nome});
+  const x = I.prod.find(q=>q.classe===d.classe && q.nome.toUpperCase()===String(p.produto).toUpperCase()); if(x) x.saldo = Math.round(((x.saldo||0)-tot)*1000)/1000; }); };
+APLICA.insumo_prod = (D,d) => { const I = D.insumos || (D.insumos = {prod:[],def:[],adu:[],ent:[]}), x = I.prod.find(q=>q.classe===d.classe && q.nome.toUpperCase()===String(d.nome).toUpperCase());
+  if(x){ if(d.un) x.un = d.un; x.ativo = d.ativo!==false; } else I.prod.push({classe:d.classe,nome:d.nome,un:d.un,ativo:true,saldo:0}); };
+APLICA.insumo_ent = (D,d) => { const I = D.insumos || (D.insumos = {prod:[],def:[],adu:[],ent:[]}), x = I.prod.find(q=>q.classe===d.classe && q.nome.toUpperCase()===String(d.produto).toUpperCase());
+  if(x) x.saldo = Math.round(((x.saldo||0)+(+d.qtd||0))*1000)/1000; I.ent.unshift({data:d.data,classe:d.classe,produto:d.produto,qtd:+d.qtd,un:d.un,obs:d.obs||'',user:user.nome}); };
+TELAS.defensivo = a => telaInsumo('def', a);
+TELAS.adubo = a => telaInsumo('adu', a);
+function telaInsumo(c, aba){
+  if(aba) abaIns[c] = aba;
+  if(!dados){ app.innerHTML = semDados()+`<h2>${INS[c].nome}</h2>`; return; }
+  const A = abaIns[c], T = INS[c].tela, L = [['novo','+ Aplicação'],['est','📦 Estoque'],['lanc','📋 Lançados']];
+  app.innerHTML = `${semDados()}<h2>${INS[c].nome}</h2>` + abas('abI',L,A,'') + '<div id="insC"></div>';
+  document.querySelectorAll('#abI button').forEach((b,i)=>b.onclick=()=>ir(T,L[i][0]));
+  $('#insC').innerHTML = A==='lanc' ? insLanc(c) : A==='est' ? insEstoque(c) : insForm(c);
+  if(A==='novo' && $('#iLinhas')){ insMais(c); insPasto(); }
+  if(A==='est') insEntProd();
+}
+function insForm(c){
+  const ps = insProds(c), cad = insPastos();
+  if(!cad.length) return '<div class="card muted">Toque em Atualizar para carregar o cadastro de pastos.</div>';
+  if(!ps.length) return `<div class="card muted">Nenhum produto no estoque ainda. ${user.admin?'Lance a entrada na aba Estoque.':'Peça ao Hugo para lançar na aba Estoque.'}</div>`;
+  const mods = [...new Set(cad.map(p=>p.m))].sort((a,b)=>(a||999)-(b||999)), alvos = [...new Set(insD().def.map(r=>r.alvo).filter(Boolean))].slice(0,30);
+  return `<div class="card">${campoData()}
+    <label>Pasto</label><select id="iPasto" onchange="insPasto()">${mods.map(m=>`<optgroup label="${m?'Módulo '+m:'TIP (sem módulo)'}">${cad.filter(p=>p.m===m).map(p=>`<option value="${esc(p.nome)}">${esc(p.nome)}</option>`).join('')}</optgroup>`).join('')}</select>
+    <label>Área aplicada (ha)</label><input type="number" inputmode="decimal" step="0.01" id="iArea" oninput="insTotais()">
+    ${c==='def'?`<label>Alvo (o que foi combatido)</label><input id="iAlvo" list="iAlvos" placeholder="Ex.: cigarrinha, assa-peixe"><datalist id="iAlvos">${alvos.map(a=>`<option value="${esc(a)}">`).join('')}</datalist>`:''}</div>
+    <div class="card"><h3>Produto e dose por hectare</h3><div id="iLinhas"></div><div style="height:8px"></div><button class="btn peq" onclick="insMais('${c}')">+ Adicionar produto</button></div>
+    <div class="card"><label>Obs.</label><input id="fObs"><div style="height:14px"></div><button class="btn prim full" onclick="salvaInsumo('${c}')">Salvar aplicação</button></div>`;
+}
+function insMais(c){ const d = document.createElement('div'); d.className = 'iLin'; d.dataset.c = c; d.style.cssText = 'display:grid;grid-template-columns:1fr 88px 34px;gap:8px;align-items:center;padding:8px 0;border-bottom:1px solid #eee';
+  d.innerHTML = `<select class="iProd" onchange="insTotais()">${insProds(c).map(p=>`<option value="${esc(p.nome)}">${esc(p.nome)} (${esc(p.un)})</option>`).join('')}</select><input type="number" inputmode="decimal" step="0.01" class="iDose" placeholder="dose" oninput="insTotais()"><button class="btn peq" style="padding:4px 0" onclick="this.parentNode.remove();insTotais()">✕</button><div class="muted iTot" style="grid-column:1/-1;font-size:12px"></div>`;
+  $('#iLinhas').appendChild(d); insTotais(); }
+function insPasto(){ const s = $('#iPasto'); if(!s) return; const p = insPastos().find(x=>x.nome===s.value); $('#iArea').value = p && p.area ? p.area : ''; insTotais(); }
+function insTotais(){ const a = +val('iArea')||0; document.querySelectorAll('.iLin').forEach(l=>{ const p = insProds(l.dataset.c).find(x=>x.nome===l.querySelector('.iProd').value) || {un:'',saldo:0}, dose = +l.querySelector('.iDose').value||0, ue = insUnEst(p.un), tot = dose*a*(INS_FAT[p.un]||1), fica = (p.saldo||0)-tot;
+  l.querySelector('.iTot').innerHTML = `Estoque: ${n2(p.saldo||0)} ${ue}` + (dose&&a ? ` · gasta <b>${n2(tot)} ${ue}</b> · fica <b style="color:${fica<0?'var(--vermelho)':'inherit'}">${n2(fica)} ${ue}</b>` : ''); }); }
+function salvaInsumo(c){
+  const pasto = val('iPasto'), cad = insPastos().find(x=>x.nome===pasto) || {}, area = +val('iArea')||0, prods = [];
+  document.querySelectorAll('.iLin').forEach(l=>{ const nome = l.querySelector('.iProd').value, dose = +l.querySelector('.iDose').value||0, p = insProds(c).find(x=>x.nome===nome); if(dose>0 && p) prods.push({produto:nome, dose, un:p.un}); });
+  if(!area) return toast('Informe a área aplicada');
+  if(!prods.length) return toast('Informe a dose de pelo menos um produto');
+  if(new Set(prods.map(p=>p.produto)).size<prods.length) return toast('Produto repetido na lista');
+  lancar('insumo',{classe:c,data:val('fData'),pasto,modulo:cad.m||'',area,alvo:c==='def'?val('iAlvo'):'',obs:val('fObs'),prods});
+  toast('Aplicação salva'); ir(INS[c].tela,'lanc'); if(navigator.onLine) sincronizar(true);
+}
+function insEstoque(c){
+  const ps = insProds(c, true), ent = insD().ent.filter(e=>e.classe===c);
+  return `<div class="card"><h3>Estoque</h3>${ps.length?`<table><tr><th>Produto</th><th>Dose em</th><th class="n">Saldo</th>${user.admin?'<th></th>':''}</tr>${ps.map(p=>`<tr style="${p.ativo===false?'opacity:.45':''}"><td><b>${esc(p.nome)}</b></td><td>${esc(p.un)}</td><td class="n" style="${(p.saldo||0)<0?'color:var(--vermelho);font-weight:700':''}">${n2(p.saldo||0)} ${insUnEst(p.un)}</td>${user.admin?`<td class="n"><button class="btn peq" style="padding:3px 8px" onclick="insProdAtivo('${c}','${insAsp(p.nome)}',${p.ativo===false})">${p.ativo===false?'Reativar':'Ocultar'}</button></td>`:''}</tr>`).join('')}</table><div class="status">Saldo = entradas menos o que foi aplicado nos pastos.</div>`:'<div class="muted">Nenhum produto cadastrado.</div>'}</div>
+  ${user.admin?`<div class="card"><h3>Entrada no estoque</h3><label>Produto</label><select id="eProd" onchange="insEntProd()">${insProds(c).map(p=>`<option value="${esc(p.nome)}">${esc(p.nome)}</option>`).join('')}<option value="__novo">➕ Produto novo…</option></select>
+    <div id="eNovo" class="oculto"><label>Nome do produto</label><input id="eNome" autocapitalize="characters"><label>Dose lançada em</label><select id="eUn" onchange="insEntProd()">${opts(INS[c].uns)}</select></div>
+    <label id="eQtdL">Quantidade</label><input type="number" inputmode="decimal" step="0.01" id="eQtd">
+    ${campoData()}<label>Obs. (nota, fornecedor)</label><input id="fObs">
+    <div class="status">Para acertar o saldo, lance a diferença (pode ser número negativo).</div>
+    <div style="height:14px"></div><button class="btn prim full" onclick="salvaInsEnt('${c}')">Salvar entrada</button></div>`:'<div class="status">Só o Hugo lança entrada no estoque.</div>'}
+  ${ent.length?`<div class="card"><h3>Últimas entradas</h3><table><tr><th>Data</th><th>Produto</th><th class="n">Qtd</th></tr>${ent.slice(0,20).map(e=>`<tr><td>${br(e.data)}</td><td>${esc(e.produto)}${e.obs?`<div class="muted" style="font-size:12px">${esc(e.obs)}</div>`:''}</td><td class="n">${n2(e.qtd)} ${esc(e.un)}</td></tr>`).join('')}</table></div>`:''}`;
+}
+function insEntProd(){ const s = $('#eProd'); if(!s) return; const novo = s.value==='__novo'; $('#eNovo').classList.toggle('oculto', !novo);
+  const c = tela==='adubo' ? 'adu' : 'def', p = insProds(c).find(x=>x.nome===s.value), un = novo ? val('eUn') : (p?p.un:''); $('#eQtdL').textContent = 'Quantidade ('+insUnEst(un)+')'; }
+function salvaInsEnt(c){
+  let produto = val('eProd'), un; const qtd = +val('eQtd')||0;
+  if(produto==='__novo'){ produto = val('eNome').toUpperCase(); un = val('eUn'); if(!produto) return toast('Informe o nome do produto');
+    if(insProds(c,true).some(p=>p.nome.toUpperCase()===produto)) return toast('Esse produto já existe na lista');
+    lancar('insumo_prod',{classe:c,nome:produto,un,ativo:true}); }
+  else { const p = insProds(c).find(x=>x.nome===produto); if(!p) return toast('Escolha o produto'); un = p.un; }
+  if(!qtd) return toast('Informe a quantidade');
+  lancar('insumo_ent',{classe:c,produto,qtd,un:insUnEst(un),data:val('fData'),obs:val('fObs')});
+  toast('Entrada salva'); ir(INS[c].tela,'est'); if(navigator.onLine) sincronizar(true);
+}
+function insProdAtivo(c, nome, ativar){ const p = insProds(c,true).find(x=>x.nome===nome); lancar('insumo_prod',{classe:c,nome,un:p?p.un:'',ativo:!!ativar}); ir(INS[c].tela,'est'); if(navigator.onLine) sincronizar(true); }
+function insEstoquePainel(c){ const ps = insProds(c); return ps.length ? `<div class="card"><h3>Estoque</h3><table><tr><th>Produto</th><th class="n">Saldo</th></tr>${ps.map(p=>`<tr><td>${esc(p.nome)}</td><td class="n" style="${(p.saldo||0)<0?'color:var(--vermelho);font-weight:700':''}">${n2(p.saldo||0)} ${insUnEst(p.un)}</td></tr>`).join('')}</table></div>` : ''; }
+function insLanc(c, noPainel){
+  const todos = insD()[c]||[], f = insFiltro[c], pastos = [...new Set(todos.map(r=>r.pasto))].sort((a,b)=>a.localeCompare(b,'pt',{numeric:true}));
+  if(!todos.length) return '<div class="card muted">Nenhuma aplicação lançada ainda.</div>';
+  const L = todos.filter(r=>!f || r.pasto===f), tot = {}, g = [];
+  L.forEach(r=>{ const k = r.produto+'|'+(r.unT||insUnEst(r.un)); tot[k] = (tot[k]||0)+(r.total||0); const kk = r.data+'|'+r.pasto+'|'+r.user; let x = g.find(y=>y.k===kk); if(!x){ x = {k:kk,data:r.data,pasto:r.pasto,area:r.area,alvo:r.alvo,obs:r.obs,user:r.user,it:[]}; g.push(x); } x.it.push(r); });
+  g.sort((a,b)=>a.data<b.data?1:a.data>b.data?-1:0);
+  return `<div class="card"><label>Pasto</label><select onchange="insFiltro['${c}']=this.value;ir('${noPainel?'painel':INS[c].tela}','${noPainel?c:'lanc'}')"><option value="">Todos</option>${pastos.map(p=>`<option ${p===f?'selected':''}>${esc(p)}</option>`).join('')}</select></div>
+  <div class="card"><h3>Total aplicado${f?' — '+esc(f):''}</h3><table><tr><th>Produto</th><th class="n">Total</th></tr>${Object.keys(tot).sort().map(k=>{ const x = k.split('|'); return `<tr><td>${esc(x[0])}</td><td class="n">${n2(tot[k])} ${esc(x[1])}</td></tr>`; }).join('')}</table></div>
+  ${g.slice(0,80).map(x=>`<div class="card"><div class="linha" style="justify-content:space-between"><b style="color:var(--laranja)">${esc(x.pasto)}</b><span class="muted">${br(x.data)} · ${n2(x.area)} ha</span></div>${x.alvo?`<div class="muted">Alvo: ${esc(x.alvo)}</div>`:''}<table>${x.it.map(r=>`<tr><td>${esc(r.produto)}</td><td class="n">${n2(r.dose)} ${esc(r.un)}</td><td class="n">${n2(r.total)} ${esc(r.unT||insUnEst(r.un))}</td></tr>`).join('')}</table>${x.obs?`<div class="muted">${esc(x.obs)}</div>`:''}<div class="muted" style="font-size:12px">${esc(x.user)}</div></div>`).join('')}
+  ${noPainel?'':'<p class="muted" style="text-align:center">Para corrigir ou apagar: tela inicial &gt; Fila &gt; Enviados nos últimos 7 dias.</p>'}`;
+}
+
 /* =================== COCHO / SAL =================== */
 TELAS.cocho = () => {
   if(!dados){ app.innerHTML = semDados()+'<h2>Cocho / sal</h2>'; return; }
@@ -1221,7 +1317,7 @@ function salvaMaq(nome){
 }
 
 /* =================== FILA + CORRIGIR / APAGAR =================== */
-const NOMES = {gado:'Controle de gado',transf:'Transferência',morte:'Morte',trato:'Trato',chuva:'Chuva',mudar:'Mudar de pasto',lote:'Lote',manejo:'Rotacionado',contagem:'Contagem',bebedouro:'Bebedouro',cocho:'Cocho/sal',maquina:'Máquina',maq_nova:'Nova máquina',regras:'Regras',medicao:'Medição de forragem',tarefa:'Tarefa',pasto:'Cadastro de pasto'};
+const NOMES = {gado:'Controle de gado',transf:'Transferência',morte:'Morte',trato:'Trato',chuva:'Chuva',mudar:'Mudar de pasto',lote:'Lote',manejo:'Rotacionado',contagem:'Contagem',bebedouro:'Bebedouro',cocho:'Cocho/sal',maquina:'Máquina',maq_nova:'Nova máquina',insumo:'Defensivo / adubo',insumo_ent:'Entrada de estoque',insumo_prod:'Produto',regras:'Regras',medicao:'Medição de forragem',tarefa:'Tarefa',pasto:'Cadastro de pasto'};
 function resumo(x){ const d=x.d||{}; const mf=()=>[(+d.machos?d.machos+' M':''),(+d.femeas?d.femeas+' F':''),(d.qtd&&!d.machos&&!d.femeas?d.qtd+(d.sexo==='F'?' F':' M'):'')].filter(Boolean).join(' '); switch(x.tipo){
   case 'trato': return d.pasto+' · '+fmt(d.kg)+' kg';
   case 'gado': return (d.mov==='saida'?'Saída ':'Entrada ')+mf()+' · '+d.fazenda+(d.obs?' · '+d.obs:'');
@@ -1236,6 +1332,9 @@ function resumo(x){ const d=x.d||{}; const mf=()=>[(+d.machos?d.machos+' M':''),
   case 'medicao': return d.pasto+' · '+d.altura+' cm';
   case 'pasto': return (d.novo?'Novo pasto ':'Pasto ')+d.nome+' → '+(+d.modulo>0?'módulo '+d.modulo:'sem módulo');
   case 'tarefa': return (d.acao==='nova' ? 'Nova: '+d.titulo : d.acao==='excluir' ? 'Excluiu: '+(d.titulo||'') : ((d.titulo||'')+' → '+d.status))+(d.foto?' 📷':'');
+  case 'insumo': return (d.classe==='adu'?'Adubo':'Defensivo')+' · '+d.pasto+' · '+(d.prods||[]).map(p=>p.produto+' '+p.dose+' '+p.un).join(' + ');
+  case 'insumo_ent': return 'Estoque: '+d.produto+' '+(d.qtd>0?'+':'')+d.qtd+' '+(d.un||'');
+  case 'insumo_prod': return 'Produto '+d.nome+(d.ativo===false?' (oculto)':'');
   case 'maq_nova': return d.nome; } return ''; }
 /* =================== TAREFAS (quadro A fazer / Fazendo / Feito) =================== */
 let abaTar = 'A fazer', tarNova = false, tarConc = '', tarFoto = null;
@@ -1325,7 +1424,7 @@ async function apagarEnv(i){
   if(!confirm('Apagar da planilha?\n'+(NOMES[x.tipo]||x.tipo)+': '+resumo(x))) return;
   try{ await api({a:'apagar', id:x.id}); toast('Apagado ✔'); await sincronizar(true); ir('fila'); }catch(e){ toast(e.message, 5000); }
 }
-const CAMPOS = {data:'Data',machos:'Machos',femeas:'Fêmeas',qtd:'Quantidade',kg:'Kg',mm:'mm',pasto:'Pasto',obs:'Obs.',local:'Local',cabecas:'Cabeças',sacos:'Sacos',produto:'Produto',horimetro:'Horímetro',litros:'Litros',desc:'Descrição',brinco:'Brinco',causa:'Causa',tratador:'Tratador',fazenda:'Fazenda',altura:'Altura (cm)',densidade:'Densidade',aprov:'Aproveitamento (%)',area:'Área útil (ha)',periodo:'Período (dias)'};
+const CAMPOS = {alvo:'Alvo',data:'Data',machos:'Machos',femeas:'Fêmeas',qtd:'Quantidade',kg:'Kg',mm:'mm',pasto:'Pasto',obs:'Obs.',local:'Local',cabecas:'Cabeças',sacos:'Sacos',produto:'Produto',horimetro:'Horímetro',litros:'Litros',desc:'Descrição',brinco:'Brinco',causa:'Causa',tratador:'Tratador',fazenda:'Fazenda',altura:'Altura (cm)',densidade:'Densidade',aprov:'Aproveitamento (%)',area:'Área útil (ha)',periodo:'Período (dias)'};
 function corrigir(i){
   const x = dados.meus[i]; if(!navigator.onLine) return toast('Precisa de internet');
   const ks = Object.keys(x.d).filter(k=>CAMPOS[k]);
@@ -1354,7 +1453,7 @@ let abaPainel='geral';
 TELAS.painel = (aba) => {
   if(!dados){ app.innerHTML=semDados(); return; }
   if(aba) abaPainel=aba;
-  const L=[['geral','Geral'],['reb','Rebanho'],['gado','Gado'],['trato','Trato'],['rot','Rotacionado'],['chuva','Chuva'],['beb','Bebedouro'],['cocho','Cocho/sal'],['maq','Máquinas']];
+  const L=[['geral','Geral'],['reb','Rebanho'],['gado','Gado'],['trato','Trato'],['rot','Rotacionado'],['chuva','Chuva'],['beb','Bebedouro'],['cocho','Cocho/sal'],['maq','Máquinas'],['def','Defensivos'],['adu','Adubos']];
   app.innerHTML = abas('abP',L,abaPainel,'') + '<div id="painelC"></div>';
   document.querySelectorAll('#abP button').forEach((b,i)=>b.onclick=()=>ir('painel',L[i][0]));
   const C = $('#painelC');
@@ -1367,6 +1466,7 @@ TELAS.painel = (aba) => {
   else if(abaPainel==='beb') C.innerHTML = painelBeb() + `<div class="card"><h3>Últimas lavagens</h3><table>${(dados.bebHist||[]).slice(0,15).map(r=>`<tr><td>${br(r.data)}</td><td>${esc(r.local)}</td><td>${esc(r.user)}</td></tr>`).join('')}</table></div>`;
   else if(abaPainel==='cocho') C.innerHTML = painelCocho() + `<div class="card"><h3>Últimos abastecimentos</h3><table>${(dados.cochoHist||[]).slice(0,15).map(r=>`<tr><td>${br(r.data)}</td><td>Mód. ${esc(r.modulo)}</td><td>${esc(r.produto)}</td><td class="n">${fmt(r.sacos)} sc</td></tr>`).join('')}</table></div>`;
   else if(abaPainel==='maq') C.innerHTML = listaMaq(true);
+  else if(abaPainel==='def' || abaPainel==='adu') C.innerHTML = insEstoquePainel(abaPainel) + insLanc(abaPainel, true);
 };
 function painelGeral(){
   const sL=saldoGado('Lorenzetti'), sU=saldoGado('União'); const tot=sL.m+sL.f+sU.m+sU.f;
