@@ -112,7 +112,7 @@ table.lis input{padding:9px 6px;text-align:center;min-width:0}
 <script>
 /* ======= configuração ======= */
 const API = 'https://script.google.com/macros/s/AKfycbwY3RA38GPBgCJ4UZjjwriIR1XyGTsPuZ1mBAuUJ_TNuZuF4nQg7P_q68GT8okeYCZd/exec';
-const VERSAO = '2.29';
+const VERSAO = '2.30';
 
 /* ======= estado ======= */
 const LS = {
@@ -1133,11 +1133,17 @@ function salvaContagem(){
 
 /* =================== BEBEDOURO =================== */
 const limBeb = l => { const R = dados && dados.regras || {}; return /^Módulo /.test(l||'') ? (R.bebedouro_rot ? R.bebedouro_rot.limite : 30) : (R.bebedouro ? R.bebedouro.limite : 7); };
-TELAS.bebedouro = () => {
-  app.innerHTML = `${semDados()}<h2>Lavagem de bebedouro</h2><div class="card">
-    <label>Local</label><select id="fLocal">${opts(locaisTodos().filter(l=>l!=='Outro'))}</select>
-    ${campoData()}<label>Obs.</label><input id="fObs">
-    <div style="height:14px"></div><button class="btn prim full" onclick="salvaBeb()">Salvar</button></div>${dados?painelBeb():''}`;
+let abaBeb = 'tip';
+TELAS.bebedouro = (aba) => {   // v2.30: igual ao trato — marca vários de uma vez; TIP numa aba, rotacionado na outra
+  if(aba) abaBeb = aba;
+  if(!dados){ app.innerHTML = semDados()+'<h2>Lavagem de bebedouro</h2>'; return; }
+  const rot = abaBeb==='rot', b = dados.bebedouros, locais = locaisTodos().filter(l=>l!=='Outro' && /^Módulo /.test(l)===rot);
+  app.innerHTML = `${semDados()}<h2>Lavagem de bebedouro</h2>` + abas('abB',[['tip','TIP'],['rot','Rotacionado']],abaBeb,"ir.bind(null,'bebedouro')")
+    + `<div class="card">${campoData()}<label>Obs.</label><input id="fObs"></div>
+    <div class="card"><div class="linha" style="justify-content:space-between;margin-bottom:4px"><span class="status">Atrasado depois de ${limBeb(rot?'Módulo 1':'Pasto')} dias${rot?' no rotacionado':' na TIP, curral e sede'}.</span><button class="btn peq" onclick="bebTodos()">Marcar todos</button></div>
+    ${locais.map(l=>{ const u=b[l], dd=u?diasDesde(u.data):null, lim=limBeb(l); return `<label class="pastorow" style="grid-template-columns:34px 1fr auto;cursor:pointer;margin:0;font-weight:400;text-transform:none;letter-spacing:0"><input type="checkbox" class="bk" data-l="${esc(l)}" onchange="contaBeb()" style="width:24px;height:24px;margin:0"><b style="font-size:16px">${esc(l.replace(/^Pasto /,''))}</b><span class="muted" style="font-size:12px;text-align:right">${u?br(u.data).slice(0,5)+' ':''}${dd==null?'<span class="tag t-cz">nunca</span>':`<span class="tag ${dd>=lim?'t-vm':dd>=lim-1?'t-am':'t-ok'}">${dd} d</span>`}</span></label>`; }).join('') || '<div class="muted">Nenhum local nesta aba.</div>'}</div>`;
+  document.querySelectorAll('#abB button').forEach((x,i)=>x.onclick=()=>ir('bebedouro',['tip','rot'][i]));
+  $('#barra').innerHTML = `<div class="barra"><div class="muted" id="contBeb">Marque os bebedouros lavados</div><button class="btn" onclick="salvaBeb()">Enviar lavagem</button></div>`;
 };
 function painelBeb(){
   const b = dados.bebedouros;
@@ -1145,7 +1151,14 @@ function painelBeb(){
   return `<div class="card"><h3>Última lavagem</h3><div class="status" style="margin-bottom:8px">Atrasado depois de ${limBeb('Pasto')} dias na TIP, curral e sede, e de ${limBeb('Módulo 1')} dias no rotacionado.</div><table><tr><th>Local</th><th>Última</th><th class="n">Dias</th></tr>
     ${lista.map(x=>`<tr><td>${esc(x.l)}</td><td>${x.u?br(x.u.data):'—'}</td><td class="n">${x.dd==null?'<span class="tag t-cz">nunca</span>':`<span class="tag ${x.dd>=limBeb(x.l)?'t-vm':x.dd>=limBeb(x.l)-1?'t-am':'t-ok'}">${x.dd}</span>`}</td></tr>`).join('')}</table></div>`;
 }
-function salvaBeb(){ lancar('bebedouro',{local:val('fLocal'),data:val('fData'),obs:val('fObs')}); salvo(1); }
+function bebTodos(){ const cs=[...document.querySelectorAll('.bk')], t=cs.some(c=>!c.checked); cs.forEach(c=>c.checked=t); contaBeb(); }
+function contaBeb(){ const n=document.querySelectorAll('.bk:checked').length; $('#contBeb').textContent = n ? n+' bebedouro(s) marcado(s)' : 'Marque os bebedouros lavados'; }
+function salvaBeb(){
+  const data=val('fData'), obs=val('fObs'), cs=[...document.querySelectorAll('.bk:checked')];
+  if(!cs.length) return toast('Marque pelo menos um bebedouro');
+  cs.forEach(c=>lancar('bebedouro',{local:c.dataset.l,data,obs}));
+  salvo(cs.length);
+}
 
 /* =================== COCHO / SAL =================== */
 TELAS.cocho = () => {
